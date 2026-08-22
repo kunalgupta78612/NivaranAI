@@ -9,6 +9,7 @@ const {
   logout,
   getMe,
   updateProfile,
+  changePassword,
 } = require("../controllers/authController");
 
 // Middleware
@@ -47,5 +48,6 @@ router.post("/logout", logout);
 // Protected routes
 router.get("/me", protect, getMe);
 router.put("/profile", protect, validateProfileUpdate, updateProfile);
+router.put("/change-password", protect, changePassword);
 
 module.exports = router;

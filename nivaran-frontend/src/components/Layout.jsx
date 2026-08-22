@@ -46,15 +46,12 @@ export default function Layout({ children }) {
 
           {/* Logo */}
           <button onClick={() => nav('/')} className="flex items-center gap-3 shrink-0 group text-left">
-            <div className="w-10 h-10 rounded-2xl grid place-items-center shadow-3d-btn transition-all group-hover:shadow-3d-btn-hover group-hover:scale-105"
-                 style={{ background: 'linear-gradient(135deg, #6366F1, #8B5CF6, #A855F7)' }}>
-              <ShieldCheck size={20} className="text-white" strokeWidth={2.5} />
-            </div>
+            <img src="/logo.png" alt="Nivaran AI Logo" className="w-12 h-12 object-contain transition-all group-hover:scale-105 drop-shadow-md" />
             <div className="hidden sm:block">
               <div className="font-black tracking-tight leading-none text-[17px] text-gradient">
                 NIVARAN AI
               </div>
-              <div className="text-[9px] uppercase tracking-[0.2em] text-slate-400 font-bold mt-0.5">Intelligent Civic Resolution</div>
+              <div className="text-[9px] uppercase tracking-[0.2em] font-extrabold mt-0.5 text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500">Intelligent Civic Resolution</div>
             </div>
           </button>
 

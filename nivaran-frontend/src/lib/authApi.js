@@ -1,4 +1,4 @@
-﻿import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import axiosInstance from './axios'
 
 // ========================
@@ -97,6 +97,12 @@ export function useLogout() {
   })
 }
 
+/** PUT /api/auth/change-password */
+const changePasswordCitizen = async (data) => {
+  const res = await axiosInstance.put('/auth/change-password', data)
+  return res.data
+}
+
 /**
  * Profile update mutation.
  * On success, refetches currentCitizen.
@@ -108,5 +114,14 @@ export function useUpdateProfile() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['currentCitizen'] })
     },
+  })
+}
+
+/**
+ * Password change mutation.
+ */
+export function useChangePassword() {
+  return useMutation({
+    mutationFn: changePasswordCitizen,
   })
 }

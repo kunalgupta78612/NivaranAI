@@ -168,13 +168,10 @@ export default function AuthPage() {
       {/* Header */}
       <header className="relative z-20 px-6 py-6 max-w-7xl w-full mx-auto flex items-center justify-between">
         <Link to="/" className="flex items-center gap-3 group">
-          <div className="w-10 h-10 rounded-2xl grid place-items-center text-white shadow-3d-btn transition-all group-hover:scale-105"
-               style={{ background: 'linear-gradient(135deg, #6366F1, #8B5CF6, #A855F7)' }}>
-            <ShieldCheck size={20} strokeWidth={2.5} />
-          </div>
+          <img src="/logo.png" alt="Nivaran AI Logo" className="w-12 h-12 object-contain transition-all group-hover:scale-105 drop-shadow-md" />
           <div>
             <div className="text-lg font-black tracking-tight text-gradient">NIVARAN AI</div>
-            <div className="text-[9px] font-extrabold uppercase tracking-[0.18em] text-slate-400">Intelligent Civic Resolution</div>
+            <div className="text-[9px] font-extrabold uppercase tracking-[0.18em] text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500">Intelligent Civic Resolution</div>
           </div>
         </Link>
 

@@ -6,13 +6,13 @@ import {
   ArrowRight, ShieldCheck, Layers, AlertTriangle, RotateCcw, ThumbsUp, Camera,
   X, Sparkles, Brain, Building2, Volume2, Square, Send, Loader2,
   CheckCircle2, Users, Calendar, Check, ShieldAlert, Eye, EyeOff, Lock, FileText, Hash, Mic,
-  Wand2, FileEdit, CheckSquare
+  Wand2, FileEdit, CheckSquare, Globe, MessageSquare, PhoneCall, Smartphone, Trash2, HelpCircle, Zap, Shield, KeyRound
 } from 'lucide-react'
 import { submitGrievance, CATEGORIES, WARDS } from '../../lib/api'
 import { useStore } from '../../store/AppStore'
 import { PriorityBadge } from '../../components/ui'
 import { cx, timeAgo } from '../../lib/utils'
-import { useCurrentCitizen, useLogout } from '../../lib/authApi'
+import { useCurrentCitizen, useLogout, useChangePassword } from '../../lib/authApi'
 
 const SAMPLES = [
   'Manhole ka dhakkan gayab hai school ke saamne, raat me bahut khatarnaak hai bacchon ke liye',
@@ -23,7 +23,7 @@ const SAMPLES = [
 
 const STAGES = ['transcribe', 'classify', 'geo', 'asset', 'cluster', 'harm', 'route', 'chain']
 
-export default function CitizenPortal() {
+export default function CitizenPortal({ defaultTab }) {
   const nav = useNavigate()
   const loc = useLocation()
   const { data: userRes } = useCurrentCitizen()
@@ -33,15 +33,72 @@ export default function CitizenPortal() {
   const citizenName = citizen?.fullName || 'Astha Patel'
   const citizenWard = citizen?.city ? `${citizen.city}, Ward 12` : 'Vijay Nagar, Ward 12'
 
-  // Sync tab with URL
-  const [tab, setTab] = useState(loc.pathname.includes('/track') ? 'track' : 'dashboard')
+  // Sync tab with URL or prop
+  const [tab, setTab] = useState(() => {
+    if (defaultTab) return defaultTab
+    if (loc.pathname.includes('/settings')) return 'settings'
+    if (loc.pathname.includes('/track')) return 'track'
+    return 'dashboard'
+  })
+
   const [formMode, setFormMode] = useState('form') // 'form' or 'voice'
   const [searchQuery, setSearchQuery] = useState('')
   const [lookupId, setLookupId] = useState('')
   const [selectedTicket, setSelectedTicket] = useState(null)
 
-  // Store data
-  const { mine, grievances, fileGrievance, citizenReopen, citizenConfirm } = useStore()
+  // Store data & settings
+  const { mine, grievances, fileGrievance, citizenReopen, citizenConfirm, settings, updateCitizenSettings } = useStore()
+
+  const isAasaan = Boolean(settings?.aasaanMode)
+
+  // Delete Data Centrepiece Modal State
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  const [deleteStage, setDeleteStage] = useState('confirm') // 'confirm' | 'erasing' | 'erased'
+
+  // Password Change State
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [pwdMsg, setPwdMsg] = useState(null)
+
+  const changePasswordMutation = useChangePassword()
+
+  function handleChangePasswordSubmit(e) {
+    e.preventDefault()
+    setPwdMsg(null)
+
+    if (!currentPassword.trim() || !newPassword.trim() || !confirmPassword.trim()) {
+      setPwdMsg({ text: 'Kripya sabhi password fields ko bharein.', tone: 'bad' })
+      return
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPwdMsg({ text: 'Naya password aur confirm password match nahi ho rahe hain.', tone: 'bad' })
+      return
+    }
+
+    if (newPassword.length < 6) {
+      setPwdMsg({ text: 'Naya password kam se kam 6 characters ka hona chahiye.', tone: 'bad' })
+      return
+    }
+
+    changePasswordMutation.mutate(
+      { currentPassword, newPassword },
+      {
+        onSuccess: (data) => {
+          setPwdMsg({ text: data.message || 'Password kamyabi se update ho gaya hai!', tone: 'ok' })
+          setCurrentPassword('')
+          setNewPassword('')
+          setConfirmPassword('')
+        },
+        onError: (err) => {
+          const errmsg = err?.response?.data?.message || 'Password update nahi ho saka. Purana password check karein.'
+          setPwdMsg({ text: errmsg, tone: 'bad' })
+        }
+      }
+    )
+  }
 
   // Form & Voice Studio States
   const [category, setCategory] = useState('sanitation')
@@ -146,6 +203,13 @@ export default function CitizenPortal() {
     setOutcome((p) => ({ ...p, [id]: r }))
   }
 
+  function startDeleteFlow() {
+    setDeleteStage('erasing')
+    setTimeout(() => {
+      setDeleteStage('erased')
+    }, 1500)
+  }
+
   const doneCount = stages.filter((s) => s.state === 'done').length
 
   const filteredMine = mine.filter((g) =>
@@ -158,7 +222,7 @@ export default function CitizenPortal() {
   const activeTrackTarget = selectedTicket || mine.find((g) => g.id.toLowerCase() === lookupId.trim().toLowerCase()) || mine[0]
 
   return (
-    <div className="fixed inset-0 bg-[#FAFAFF] text-slate-900 flex overflow-hidden font-sans selection:bg-indigo-500/20 selection:text-indigo-900 z-50">
+    <div className={cx("fixed inset-0 bg-[#FAFAFF] text-slate-900 flex overflow-hidden font-sans selection:bg-indigo-500/20 selection:text-indigo-900 z-50", isAasaan ? "text-base" : "text-xs")}>
       
       {/* Background Mesh Gradient */}
       <div className="absolute inset-0 pointer-events-none z-0"
@@ -174,13 +238,10 @@ export default function CitizenPortal() {
           {/* Top Logo & App Title */}
           <div className="p-5 flex items-center justify-between border-b border-slate-200/60">
             <button onClick={() => nav('/')} className="flex items-center gap-3 text-left group">
-              <div className="w-10 h-10 rounded-2xl grid place-items-center text-white shadow-3d-btn transition-all group-hover:scale-105"
-                   style={{ background: 'linear-gradient(135deg, #6366F1, #8B5CF6, #A855F7)' }}>
-                <ShieldCheck size={20} strokeWidth={2.5} />
-              </div>
+              <img src="/logo.png" alt="Nivaran AI Logo" className="w-12 h-12 object-contain transition-all group-hover:scale-105 drop-shadow-md" />
               <div>
                 <div className="text-base font-black tracking-tight text-gradient">Nivaran AI</div>
-                <div className="text-[9px] font-extrabold uppercase tracking-widest text-slate-400">Civic Platform</div>
+                <div className="text-[9px] font-extrabold uppercase tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500">Intelligent Civic Resolution</div>
               </div>
             </button>
             <span className="text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100/80">
@@ -194,7 +255,7 @@ export default function CitizenPortal() {
               {citizenName.charAt(0)}
             </div>
             <div className="min-w-0 flex-1">
-              <div className="text-xs font-extrabold text-slate-800 truncate">{citizenName}</div>
+              <div className={cx("font-extrabold text-slate-800 truncate", isAasaan ? "text-sm" : "text-xs")}>{citizenName}</div>
               <div className="text-[10px] text-slate-400 font-semibold truncate mt-0.5">{citizenWard}</div>
             </div>
           </div>
@@ -216,13 +277,14 @@ export default function CitizenPortal() {
                   key={item.key}
                   onClick={() => { setTab(item.key); setTicket(null) }}
                   className={cx(
-                    'w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-extrabold transition-all duration-200',
+                    'w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl font-extrabold transition-all duration-200',
+                    isAasaan ? 'text-sm' : 'text-xs',
                     active
                       ? 'bg-indigo-600 text-white shadow-3d-btn'
                       : 'text-slate-500 hover:text-slate-800 hover:bg-white/60'
                   )}>
                   <div className="flex items-center gap-3">
-                    <item.icon size={16} className={active ? 'text-white' : 'text-slate-400'} />
+                    <item.icon size={isAasaan ? 18 : 16} className={active ? 'text-white' : 'text-slate-400'} />
                     <span>{item.label}</span>
                   </div>
                   {item.badge && (
@@ -243,7 +305,7 @@ export default function CitizenPortal() {
         <div className="p-4 border-t border-slate-200/60">
           <button
             onClick={handleSignOut}
-            className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-extrabold text-rose-600 hover:bg-rose-50/80 transition-colors">
+            className={cx("w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl font-extrabold text-rose-600 hover:bg-rose-50/80 transition-colors", isAasaan ? "text-sm" : "text-xs")}>
             <LogOut size={16} />
             <span>Sign Out</span>
           </button>
@@ -265,12 +327,18 @@ export default function CitizenPortal() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search grievances, wards, status..."
-              className="w-full rounded-2xl bg-white/70 border border-slate-200/80 pl-9 pr-4 py-1.5 text-xs font-bold text-slate-800 placeholder:text-slate-400 outline-none focus:border-indigo-500 transition-all shadow-glass-xs"
+              className={cx("w-full rounded-2xl bg-white/70 border border-slate-200/80 pl-9 pr-4 py-1.5 font-bold text-slate-800 placeholder:text-slate-400 outline-none focus:border-indigo-500 transition-all shadow-glass-xs", isAasaan ? "text-sm" : "text-xs")}
             />
           </div>
 
           {/* Right Header User / Notification */}
           <div className="flex items-center gap-4">
+            {isAasaan && (
+              <span className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-amber-100 text-amber-800 border border-amber-200">
+                <Zap size={14} className="text-amber-600" /> Aasaan Mode Active
+              </span>
+            )}
+
             <button
               onClick={() => setTab('notifications')}
               className="relative p-2 rounded-2xl bg-white/70 border border-slate-200/80 text-slate-600 hover:text-indigo-600 hover:shadow-glass-xs transition-all">
@@ -283,7 +351,7 @@ export default function CitizenPortal() {
                 {citizenName.charAt(0)}
               </div>
               <div className="hidden sm:block text-left">
-                <div className="text-xs font-extrabold text-slate-800">{citizenName}</div>
+                <div className={cx("font-extrabold text-slate-800", isAasaan ? "text-sm" : "text-xs")}>{citizenName}</div>
                 <div className="text-[10px] text-slate-400 font-bold">Verified Citizen • Ward 12</div>
               </div>
             </div>
@@ -309,18 +377,17 @@ export default function CitizenPortal() {
                   <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-widest bg-indigo-50 text-indigo-600 border border-indigo-100">
                     <Building2 size={12} /> Citizen Member Portal
                   </div>
-                  <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
+                  <h1 className={cx("font-black text-slate-900 tracking-tight", isAasaan ? "text-3xl" : "text-2xl md:text-3xl")}>
                     Welcome back, <span className="text-gradient">{citizenName}</span>!
                   </h1>
-                  <p className="text-xs md:text-sm text-slate-500 font-semibold max-w-xl leading-relaxed">
+                  <p className={cx("text-slate-500 font-semibold max-w-xl leading-relaxed", isAasaan ? "text-base" : "text-xs md:text-sm")}>
                     Indore Municipal Corporation • File complaints via form or voice intake, track SLA timers, and verify resolution proof.
                   </p>
                 </div>
 
-                {/* Top Right Action Button */}
                 <button
                   onClick={() => { setTab('file'); setTicket(null) }}
-                  className="btn-primary text-xs px-5 py-3 font-extrabold flex items-center gap-2 shadow-3d-btn shrink-0">
+                  className={cx("btn-primary font-extrabold flex items-center gap-2 shadow-3d-btn shrink-0", isAasaan ? "px-6 py-3.5 text-sm" : "px-5 py-3 text-xs")}>
                   <Plus size={16} /> + New Grievance
                 </button>
               </div>
@@ -370,14 +437,13 @@ export default function CitizenPortal() {
 
               {/* 3. Row of 3 Feature Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                {/* Feature 1 */}
                 <div className="p-6 rounded-3xl panel shadow-3d-card flex flex-col justify-between space-y-4 hover-3d">
                   <div className="space-y-3">
                     <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-100 grid place-items-center text-emerald-600">
                       <FileEdit size={20} />
                     </div>
-                    <h3 className="text-base font-extrabold text-slate-900">New Grievance Form</h3>
-                    <p className="text-xs text-slate-500 font-semibold leading-relaxed">
+                    <h3 className={cx("font-extrabold text-slate-900", isAasaan ? "text-lg" : "text-base")}>New Grievance Form</h3>
+                    <p className={cx("text-slate-500 font-semibold leading-relaxed", isAasaan ? "text-sm" : "text-xs")}>
                       Structured intake form with category, ward, landmark, vulnerability checks, and geotagged evidence upload.
                     </p>
                   </div>
@@ -388,14 +454,13 @@ export default function CitizenPortal() {
                   </button>
                 </div>
 
-                {/* Feature 2 */}
                 <div className="p-6 rounded-3xl panel shadow-3d-card flex flex-col justify-between space-y-4 hover-3d">
                   <div className="space-y-3">
                     <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 grid place-items-center text-indigo-600">
                       <Clock size={20} />
                     </div>
-                    <h3 className="text-base font-extrabold text-slate-900">My Grievances</h3>
-                    <p className="text-xs text-slate-500 font-semibold leading-relaxed">
+                    <h3 className={cx("font-extrabold text-slate-900", isAasaan ? "text-lg" : "text-base")}>My Grievances</h3>
+                    <p className={cx("text-slate-500 font-semibold leading-relaxed", isAasaan ? "text-sm" : "text-xs")}>
                       View active ticket status, SLA countdowns, officer assignments, and live telemetry across your ward.
                     </p>
                   </div>
@@ -406,14 +471,13 @@ export default function CitizenPortal() {
                   </button>
                 </div>
 
-                {/* Feature 3 */}
                 <div className="p-6 rounded-3xl panel shadow-3d-card flex flex-col justify-between space-y-4 hover-3d">
                   <div className="space-y-3">
                     <div className="w-10 h-10 rounded-2xl bg-purple-50 border border-purple-100 grid place-items-center text-purple-600">
                       <MapPin size={20} />
                     </div>
-                    <h3 className="text-base font-extrabold text-slate-900">Track Complaint</h3>
-                    <p className="text-xs text-slate-500 font-semibold leading-relaxed">
+                    <h3 className={cx("font-extrabold text-slate-900", isAasaan ? "text-lg" : "text-base")}>Track Complaint</h3>
+                    <p className={cx("text-slate-500 font-semibold leading-relaxed", isAasaan ? "text-sm" : "text-xs")}>
                       Look up any complaint ID, inspect live officer resolution photos, or trigger the Re-open penalty trap.
                     </p>
                   </div>
@@ -444,7 +508,7 @@ export default function CitizenPortal() {
                           <span className="font-mono text-[10px] font-extrabold text-indigo-600 px-2 py-0.5 rounded-lg bg-indigo-50 border border-indigo-100">{g.id}</span>
                           <PriorityBadge p={g.priority} />
                         </div>
-                        <p className="text-xs font-bold text-slate-800 truncate">{g.text}</p>
+                        <p className={cx("font-bold text-slate-800 truncate", isAasaan ? "text-sm" : "text-xs")}>{g.text}</p>
                         <div className="text-[10px] text-slate-400 font-semibold mt-1">{g.wardName} • {g.categoryLabel}</div>
                       </div>
                       <button onClick={() => { setSelectedTicket(g); setTab('track') }} className="btn-ghost text-xs px-3 py-1.5 font-extrabold">
@@ -508,7 +572,6 @@ export default function CitizenPortal() {
                         {/* MODE A: STRUCTURED FORM INTAKE */}
                         {formMode === 'form' && (
                           <div className="space-y-4">
-                            {/* Category & Ward */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div>
                                 <label className="text-xs font-extrabold text-slate-700 mb-1.5 block">Grievance Category *</label>
@@ -531,7 +594,6 @@ export default function CitizenPortal() {
                               </div>
                             </div>
 
-                            {/* Complaint Title */}
                             <div>
                               <label className="text-xs font-extrabold text-slate-700 mb-1.5 block">Grievance Subject / Title *</label>
                               <input type="text" value={subject} onChange={(e) => setSubject(e.target.value)}
@@ -540,7 +602,6 @@ export default function CitizenPortal() {
                               />
                             </div>
 
-                            {/* Landmark / Street Address */}
                             <div>
                               <label className="text-xs font-extrabold text-slate-700 mb-1.5 block">Landmark / Street Address *</label>
                               <div className="relative">
@@ -552,7 +613,6 @@ export default function CitizenPortal() {
                               </div>
                             </div>
 
-                            {/* Detailed Description */}
                             <div>
                               <label className="text-xs font-extrabold text-slate-700 mb-1.5 block">Detailed Explanation (Hindi / Hinglish / English) *</label>
                               <textarea value={text} onChange={(e) => setText(e.target.value)} rows={4}
@@ -561,7 +621,6 @@ export default function CitizenPortal() {
                               />
                             </div>
 
-                            {/* Vulnerability Checkboxes */}
                             <div className="p-4 rounded-2xl bg-indigo-50/40 border border-indigo-100/80 space-y-2.5">
                               <div className="text-[11px] font-extrabold text-indigo-900 uppercase tracking-wider">Vulnerability Risk Indicators (Auto Priority Boost)</div>
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-bold text-slate-700">
@@ -576,7 +635,6 @@ export default function CitizenPortal() {
                               </div>
                             </div>
 
-                            {/* Photo Evidence */}
                             <div>
                               <label className="text-xs font-extrabold text-slate-700 mb-1.5 block">Photo Evidence (Optional Geotagged)</label>
                               {photo ? (
@@ -594,7 +652,6 @@ export default function CitizenPortal() {
                               )}
                             </div>
 
-                            {/* Submit Form */}
                             <button onClick={fire} disabled={(!subject.trim() && !text.trim()) || busy}
                               className="btn-emerald w-full py-3.5 text-xs font-extrabold shadow-3d-btn flex items-center justify-center gap-2 disabled:opacity-40">
                               {busy ? <><Loader2 size={16} className="animate-spin" /> Processing AI Pipeline…</> : <><Send size={16} /> Register Structured Grievance</>}
@@ -605,7 +662,6 @@ export default function CitizenPortal() {
                         {/* MODE B: AI VOICE STUDIO */}
                         {formMode === 'voice' && (
                           <div className="space-y-6">
-                            {/* Mic Recorder */}
                             <div className="flex flex-col items-center justify-center py-8 rounded-3xl bg-indigo-50/40 border border-indigo-100 relative overflow-hidden">
                               <button onClick={toggleRecord}
                                 className="relative w-32 h-32 rounded-full grid place-items-center active:scale-95 transition-all duration-300 cursor-pointer group">
@@ -622,7 +678,6 @@ export default function CitizenPortal() {
                               <p className="text-[11px] text-slate-400 font-semibold mt-1">Automatic Hinglish / Hindi / English transcription</p>
                             </div>
 
-                            {/* Voice Text Output */}
                             <div>
                               <label className="text-xs font-extrabold text-slate-700 mb-2 block">Voice Transcript / Notes</label>
                               <textarea value={text} onChange={(e) => setText(e.target.value)} rows={4}
@@ -631,7 +686,6 @@ export default function CitizenPortal() {
                               />
                             </div>
 
-                            {/* Samples */}
                             <div>
                               <span className="text-[11px] font-extrabold text-slate-400 block mb-2">Try Voice Complaint Examples</span>
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -743,7 +797,6 @@ export default function CitizenPortal() {
                         </div>
                       </div>
 
-                      {/* Status / Verification */}
                       {awaiting && !out && (
                         <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 space-y-3">
                           <p className="text-xs font-extrabold text-amber-800">Officer claimed "Resolved". Confirm fix?</p>
@@ -788,7 +841,6 @@ export default function CitizenPortal() {
                   Lookup any complaint ID or select a grievance to inspect officer assignment, SLA deadline countdown, and on-chain verification proof.
                 </p>
 
-                {/* Complaint ID Lookup Input */}
                 <div className="flex gap-3 max-w-md pt-2">
                   <input
                     type="text"
@@ -804,10 +856,8 @@ export default function CitizenPortal() {
                 </div>
               </div>
 
-              {/* Active Ticket Tracker Display */}
               {activeTrackTarget ? (
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                  {/* Left Detail Panel */}
                   <div className="lg:col-span-7 p-7 rounded-3xl panel shadow-3d-card space-y-6">
                     <div className="flex items-center justify-between pb-4 border-b border-slate-200/60">
                       <div>
@@ -838,7 +888,6 @@ export default function CitizenPortal() {
                       </div>
                     </div>
 
-                    {/* Officer Proof Section */}
                     {activeTrackTarget.status === 'closed_unverified' && (
                       <div className="p-5 rounded-2xl bg-amber-50 border border-amber-200 space-y-3">
                         <div className="text-xs font-extrabold text-amber-800 flex items-center gap-2">
@@ -859,7 +908,6 @@ export default function CitizenPortal() {
                     )}
                   </div>
 
-                  {/* Right Status Pipeline */}
                   <div className="lg:col-span-5 p-7 rounded-3xl panel shadow-3d-card space-y-6">
                     <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
                       <ShieldCheck size={16} className="text-indigo-600" /> Resolution Progress Rail
@@ -963,36 +1011,516 @@ export default function CitizenPortal() {
           )}
 
           {/* ============================================================ */}
-          {/* TAB 7: SETTINGS                                              */}
+          {/* TAB 7: SETTINGS (PROMPT REQS: 4 SECTIONS IN EXACT ORDER)     */}
           {/* ============================================================ */}
           {tab === 'settings' && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6 max-w-3xl">
-              <div className="p-7 rounded-3xl panel shadow-3d-float space-y-6">
-                <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
-                  <Settings size={18} className="text-indigo-600" /> Citizen Settings
-                </h2>
-                <div className="space-y-4 text-xs font-semibold">
-                  <div className="flex items-center justify-between p-4 rounded-2xl bg-white/80 border border-slate-200/60">
-                    <div>
-                      <div className="text-slate-800 font-extrabold">Language Intake Preference</div>
-                      <div className="text-slate-400 text-[11px] mt-0.5">Code-mixed Hindi + English (Whisper model)</div>
-                    </div>
-                    <span className="text-indigo-600 font-extrabold">Hinglish / Hindi</span>
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8 max-w-3xl">
+              
+              {/* Settings Page Header */}
+              <div className="p-7 rounded-3xl panel shadow-3d-float flex items-center justify-between gap-4">
+                <div>
+                  <h2 className={cx("font-black text-slate-900 flex items-center gap-2.5", isAasaan ? "text-2xl" : "text-xl")}>
+                    <Settings size={isAasaan ? 24 : 20} className="text-indigo-600" /> Citizen Settings
+                  </h2>
+                  <p className={cx("font-semibold text-slate-400 mt-1", isAasaan ? "text-sm" : "text-xs")}>
+                    Bhasha, contact channel, privacy control, aur aasaan mode preferences.
+                  </p>
+                </div>
+                <span className="text-[10px] font-extrabold uppercase px-3 py-1 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100">
+                  DPDP Compliant
+                </span>
+              </div>
+
+              {/* Aasaan Mode Active Banner */}
+              {isAasaan && (
+                <div className="p-5 rounded-3xl bg-gradient-to-r from-amber-500 via-indigo-600 to-purple-600 text-white shadow-3d-btn flex items-center gap-4 animate-pulse">
+                  <div className="w-12 h-12 rounded-2xl bg-white/20 grid place-items-center shrink-0">
+                    <Volume2 size={24} />
                   </div>
-                  <div className="flex items-center justify-between p-4 rounded-2xl bg-white/80 border border-slate-200/60">
-                    <div>
-                      <div className="text-slate-800 font-extrabold">Data Mode</div>
-                      <div className="text-slate-400 text-[11px] mt-0.5">Live Express + MongoDB Backend Sync</div>
-                    </div>
-                    <span className="text-emerald-600 font-extrabold">Active</span>
+                  <div>
+                    <div className="text-sm font-black uppercase tracking-wider">📢 Aasaan Voice-Guided Mode Active</div>
+                    <div className="text-xs font-semibold opacity-90">Typography scaled up & simplified high-contrast UI enabled for low-digital-access wards.</div>
                   </div>
                 </div>
+              )}
+
+              {/* -------------------------------------------------------- */}
+              {/* SECTION 1: BHASHA AUR AWAAZ                             */}
+              {/* -------------------------------------------------------- */}
+              <div className="p-7 rounded-3xl panel shadow-3d-card space-y-6">
+                <div className="flex items-center justify-between pb-4 border-b border-slate-200/60">
+                  <h3 className={cx("font-black text-slate-900 flex items-center gap-2", isAasaan ? "text-lg" : "text-base")}>
+                    <Globe size={18} className="text-indigo-600" /> 1. Bhasha aur awaaz
+                  </h3>
+                  <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2.5 py-1 rounded-full">Speech & Language</span>
+                </div>
+
+                {/* Language Radio */}
+                <div>
+                  <label className={cx("font-extrabold text-slate-700 mb-3 block", isAasaan ? "text-sm" : "text-xs")}>Language Preference</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {[
+                      { id: 'hindi', label: 'Hindi (हिंदी)', desc: 'Pure Hindi voice & text' },
+                      { id: 'hinglish', label: 'Hinglish (Hindi + English)', desc: 'Code-mixed natural audio' },
+                      { id: 'english', label: 'English', desc: 'Standard English interface' },
+                    ].map((lang) => {
+                      const selected = (settings?.language || 'hinglish') === lang.id
+                      return (
+                        <button
+                          key={lang.id}
+                          type="button"
+                          onClick={() => updateCitizenSettings({ language: lang.id })}
+                          className={cx(
+                            'p-4 rounded-2xl text-left border transition-all duration-200 flex flex-col justify-between',
+                            selected
+                              ? 'bg-indigo-600 text-white border-indigo-600 shadow-3d-btn'
+                              : 'bg-white/70 border-slate-200/80 text-slate-700 hover:border-indigo-300'
+                          )}>
+                          <div className="flex items-center justify-between">
+                            <span className={cx("font-extrabold", isAasaan ? "text-base" : "text-xs")}>{lang.label}</span>
+                            <div className={cx("w-4 h-4 rounded-full border-2 grid place-items-center", selected ? "border-white bg-white text-indigo-600" : "border-slate-300")}>
+                              {selected && <Check size={10} strokeWidth={3} />}
+                            </div>
+                          </div>
+                          <span className={cx("mt-2 text-[10px] font-medium", selected ? "text-indigo-100" : "text-slate-400")}>{lang.desc}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Toggle: Jawab bol kar sunao */}
+                <div className="p-4 rounded-2xl bg-white/80 border border-slate-200/80 flex items-center justify-between gap-4 shadow-glass-xs">
+                  <div className="space-y-1">
+                    <div className={cx("font-extrabold text-slate-800 flex items-center gap-2", isAasaan ? "text-base" : "text-xs")}>
+                      <Volume2 size={16} className="text-indigo-600" /> Jawab bol kar sunao (Text-to-Speech)
+                    </div>
+                    <p className={cx("text-slate-500 font-semibold", isAasaan ? "text-xs" : "text-[11px]")}>
+                      AI grievance updates aur officer replies audio me bol kar sunayega.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => updateCitizenSettings({ ttsEnabled: !settings?.ttsEnabled })}
+                    className={cx(
+                      "w-12 h-6 rounded-full transition-colors relative shrink-0 p-0.5",
+                      settings?.ttsEnabled ? "bg-indigo-600" : "bg-slate-300"
+                    )}>
+                    <span className={cx("w-5 h-5 rounded-full bg-white block transition-transform shadow-md", settings?.ttsEnabled ? "translate-x-6" : "translate-x-0")} />
+                  </button>
+                </div>
+
+                {/* Helper line explaining low literacy accessibility */}
+                <div className="p-4 rounded-2xl bg-indigo-50/60 border border-indigo-100 text-slate-700 text-xs font-semibold flex items-start gap-2.5">
+                  <HelpCircle size={16} className="text-indigo-600 shrink-0 mt-0.5" />
+                  <span>
+                    <strong>Accessibility Note:</strong> Jo bol kar shikayat karte hain, aksar woh padh bhi nahi sakte — isliye AI jawab sunana zaroori hai.
+                  </span>
+                </div>
               </div>
+
+              {/* -------------------------------------------------------- */}
+              {/* SECTION 2: MUJHE KAISE CONTACT KAREIN                    */}
+              {/* -------------------------------------------------------- */}
+              <div className="p-7 rounded-3xl panel shadow-3d-card space-y-6">
+                <div className="flex items-center justify-between pb-4 border-b border-slate-200/60">
+                  <h3 className={cx("font-black text-slate-900 flex items-center gap-2", isAasaan ? "text-lg" : "text-base")}>
+                    <MessageSquare size={18} className="text-indigo-600" /> 2. Mujhe kaise contact karein
+                  </h3>
+                  <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2.5 py-1 rounded-full">Contact Channels</span>
+                </div>
+
+                {/* Channel Picker */}
+                <div>
+                  <label className={cx("font-extrabold text-slate-700 mb-3 block", isAasaan ? "text-sm" : "text-xs")}>Primary Contact Channel</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {[
+                      { id: 'whatsapp', label: 'WhatsApp', icon: MessageSquare, desc: 'Instant chat alerts' },
+                      { id: 'sms', label: 'SMS', icon: Smartphone, desc: 'Text messages' },
+                      { id: 'ivr', label: 'IVR call', icon: PhoneCall, desc: 'Automated voice call' },
+                      { id: 'push', label: 'Push', icon: Bell, desc: 'App notifications' },
+                    ].map((c) => {
+                      const selected = (settings?.contactChannel || 'whatsapp') === c.id
+                      return (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => updateCitizenSettings({ contactChannel: c.id })}
+                          className={cx(
+                            'p-3.5 rounded-2xl text-center border transition-all duration-200 flex flex-col items-center justify-center space-y-2',
+                            selected
+                              ? 'bg-indigo-600 text-white border-indigo-600 shadow-3d-btn'
+                              : 'bg-white/70 border-slate-200/80 text-slate-700 hover:border-indigo-300'
+                          )}>
+                          <c.icon size={20} className={selected ? 'text-white' : 'text-slate-500'} />
+                          <div className={cx("font-extrabold", isAasaan ? "text-sm" : "text-xs")}>{c.label}</div>
+                          <span className={cx("text-[9px] font-medium", selected ? "text-indigo-100" : "text-slate-400")}>{c.desc}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Toggle: Call verification */}
+                <div className="p-4 rounded-2xl bg-white/80 border border-slate-200/80 flex items-center justify-between gap-4 shadow-glass-xs">
+                  <div className="space-y-1">
+                    <div className={cx("font-extrabold text-slate-800 flex items-center gap-2", isAasaan ? "text-base" : "text-xs")}>
+                      <PhoneCall size={16} className="text-indigo-600" /> Verification ke liye call karo, message nahi
+                    </div>
+                    <p className={cx("text-slate-500 font-semibold", isAasaan ? "text-xs" : "text-[11px]")}>
+                      Resolution verification ke waqt officer ka automated IVR call aayega.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => updateCitizenSettings({ callVerification: !settings?.callVerification })}
+                    className={cx(
+                      "w-12 h-6 rounded-full transition-colors relative shrink-0 p-0.5",
+                      settings?.callVerification ? "bg-indigo-600" : "bg-slate-300"
+                    )}>
+                    <span className={cx("w-5 h-5 rounded-full bg-white block transition-transform shadow-md", settings?.callVerification ? "translate-x-6" : "translate-x-0")} />
+                  </button>
+                </div>
+
+                {/* Load-Bearing Style Note */}
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-50/90 via-indigo-50/40 to-amber-50/90 border-2 border-amber-300/80 text-amber-900 shadow-glass-xs space-y-1.5">
+                  <div className="flex items-center gap-2 font-black text-xs uppercase tracking-wider text-amber-800">
+                    <ShieldAlert size={16} className="text-amber-600" /> Load-Bearing Resolution Verification Note
+                  </div>
+                  <p className={cx("font-bold text-amber-900/90 leading-relaxed", isAasaan ? "text-xs" : "text-[11px]")}>
+                    Shikayat sulajhne ki pushti (the resolution-verification loop) depends on this being reachable — agar ye reachable nahi hua toh aapka ticket pending ho sakta hai.
+                  </p>
+                </div>
+              </div>
+
+              {/* -------------------------------------------------------- */}
+              {/* SECTION 3: PRIVACY AUR MERA DATA (THE CENTREPIECE)       */}
+              {/* -------------------------------------------------------- */}
+              <div className="p-7 rounded-3xl panel shadow-3d-card space-y-6 border-2 border-indigo-200/80 bg-gradient-to-br from-white/90 via-indigo-50/20 to-white/90">
+                <div className="flex items-center justify-between pb-4 border-b border-slate-200/60">
+                  <div>
+                    <h3 className={cx("font-black text-slate-900 flex items-center gap-2", isAasaan ? "text-lg" : "text-base")}>
+                      <Lock size={18} className="text-indigo-600" /> 3. Privacy aur mera data
+                    </h3>
+                    <p className="text-[11px] font-semibold text-slate-400 mt-0.5">DPDP Act (Digital Personal Data Protection) Right-to-Erasure Controls</p>
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200">
+                    On-Chain Proof
+                  </span>
+                </div>
+
+                {/* Toggle: Gumnaam shikayat */}
+                <div className="p-4 rounded-2xl bg-white/80 border border-slate-200/80 flex items-center justify-between gap-4 shadow-glass-xs">
+                  <div className="space-y-1">
+                    <div className={cx("font-extrabold text-slate-800 flex items-center gap-2", isAasaan ? "text-base" : "text-xs")}>
+                      <EyeOff size={16} className="text-indigo-600" /> Gumnaam shikayat karein (File Anonymously)
+                    </div>
+                    <p className={cx("text-slate-500 font-semibold", isAasaan ? "text-xs" : "text-[11px]")}>
+                      Aapka naam aur PII public officer board aur reports se chhipayi jayegi.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => updateCitizenSettings({ anonymousFiling: !settings?.anonymousFiling })}
+                    className={cx(
+                      "w-12 h-6 rounded-full transition-colors relative shrink-0 p-0.5",
+                      settings?.anonymousFiling ? "bg-indigo-600" : "bg-slate-300"
+                    )}>
+                    <span className={cx("w-5 h-5 rounded-full bg-white block transition-transform shadow-md", settings?.anonymousFiling ? "translate-x-6" : "translate-x-0")} />
+                  </button>
+                </div>
+
+                {/* Toggle: Sirf ward-level location */}
+                <div className="p-4 rounded-2xl bg-white/80 border border-slate-200/80 flex items-center justify-between gap-4 shadow-glass-xs">
+                  <div className="space-y-1">
+                    <div className={cx("font-extrabold text-slate-800 flex items-center gap-2", isAasaan ? "text-base" : "text-xs")}>
+                      <MapPin size={16} className="text-indigo-600" /> Sirf ward-level location bhejein (Instead of Exact GPS)
+                    </div>
+                    <p className={cx("text-slate-500 font-semibold", isAasaan ? "text-xs" : "text-[11px]")}>
+                      Exact lat/long GPS coordinates ki jagah sirf ward/locality boundary bhejein.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => updateCitizenSettings({ wardOnlyLocation: !settings?.wardOnlyLocation })}
+                    className={cx(
+                      "w-12 h-6 rounded-full transition-colors relative shrink-0 p-0.5",
+                      settings?.wardOnlyLocation ? "bg-indigo-600" : "bg-slate-300"
+                    )}>
+                    <span className={cx("w-5 h-5 rounded-full bg-white block transition-transform shadow-md", settings?.wardOnlyLocation ? "translate-x-6" : "translate-x-0")} />
+                  </button>
+                </div>
+
+                {/* Centrepiece Delete Data Button */}
+                <div className="p-5 rounded-2xl bg-rose-50/70 border border-rose-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div>
+                    <div className="text-xs font-black text-rose-900 uppercase tracking-wider flex items-center gap-2">
+                      <Trash2 size={16} className="text-rose-600" /> DPDP Right-to-Erasure Action
+                    </div>
+                    <p className="text-[11px] font-bold text-slate-600 mt-1">
+                      Wipe all off-chain PII records while preserving immutable audit hash on Polygon ledger.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { setDeleteModalOpen(true); setDeleteStage('confirm') }}
+                    className="btn-danger text-xs px-5 py-3 font-black shadow-3d-btn shrink-0 flex items-center gap-2">
+                    <Trash2 size={14} /> Mera data delete karein
+                  </button>
+                </div>
+              </div>
+
+              {/* -------------------------------------------------------- */}
+              {/* SECTION 4: AASAAN MODE                                   */}
+              {/* -------------------------------------------------------- */}
+              <div className="p-7 rounded-3xl panel shadow-3d-card space-y-6">
+                <div className="flex items-center justify-between pb-4 border-b border-slate-200/60">
+                  <h3 className={cx("font-black text-slate-900 flex items-center gap-2", isAasaan ? "text-lg" : "text-base")}>
+                    <Zap size={18} className="text-indigo-600" /> 4. Aasaan mode
+                  </h3>
+                  <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2.5 py-1 rounded-full">Accessibility UI</span>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-white/80 border border-slate-200/80 flex items-center justify-between gap-4 shadow-glass-xs">
+                  <div className="space-y-1">
+                    <div className={cx("font-extrabold text-slate-800 flex items-center gap-2", isAasaan ? "text-base" : "text-xs")}>
+                      <Zap size={16} className="text-amber-500" /> Aasaan Mode (High Contrast & Scaled Type)
+                    </div>
+                    <p className={cx("text-slate-500 font-semibold", isAasaan ? "text-xs" : "text-[11px]")}>
+                      Visibly scales up typography, icon labels, and audio guidance across the citizen portal.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => updateCitizenSettings({ aasaanMode: !settings?.aasaanMode })}
+                    className={cx(
+                      "w-12 h-6 rounded-full transition-colors relative shrink-0 p-0.5",
+                      settings?.aasaanMode ? "bg-indigo-600" : "bg-slate-300"
+                    )}>
+                    <span className={cx("w-5 h-5 rounded-full bg-white block transition-transform shadow-md", settings?.aasaanMode ? "translate-x-6" : "translate-x-0")} />
+                  </button>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold flex items-center gap-2.5">
+                  <Sparkles size={16} className="text-indigo-600 shrink-0" />
+                  <span>Kam digital access wale wards aur buzurg nagrikon ke liye aasaan UI mode.</span>
+                </div>
+              </div>
+
+              {/* -------------------------------------------------------- */}
+              {/* SECTION 5: PASSWORD BADLEIN (CHANGE PASSWORD)            */}
+              {/* -------------------------------------------------------- */}
+              <div className="p-7 rounded-3xl panel shadow-3d-card space-y-6">
+                <div className="flex items-center justify-between pb-4 border-b border-slate-200/60">
+                  <h3 className={cx("font-black text-slate-900 flex items-center gap-2", isAasaan ? "text-lg" : "text-base")}>
+                    <KeyRound size={18} className="text-indigo-600" /> 5. Password aur Security
+                  </h3>
+                  <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2.5 py-1 rounded-full">Security Settings</span>
+                </div>
+
+                <form onSubmit={handleChangePasswordSubmit} className="space-y-4">
+                  {pwdMsg && (
+                    <div className={cx("p-4 rounded-2xl text-xs font-bold flex items-center gap-2",
+                      pwdMsg.tone === 'ok' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200')}>
+                      {pwdMsg.tone === 'ok' ? <Check size={16} /> : <AlertTriangle size={16} />}
+                      <span>{pwdMsg.text}</span>
+                    </div>
+                  )}
+
+                  {/* Current Password */}
+                  <div>
+                    <label className={cx("font-extrabold text-slate-700 mb-1.5 block", isAasaan ? "text-sm" : "text-xs")}>Purana Password (Current Password) *</label>
+                    <div className="relative">
+                      <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        placeholder="••••••••"
+                        className={cx("w-full rounded-2xl bg-white/80 border border-slate-200 pl-10 pr-10 py-2.5 font-bold text-slate-800 outline-none focus:border-indigo-500 transition-all shadow-glass-xs", isAasaan ? "text-sm" : "text-xs")}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                        {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* New Password & Confirm Password */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className={cx("font-extrabold text-slate-700 mb-1.5 block", isAasaan ? "text-sm" : "text-xs")}>Naya Password (New Password) *</label>
+                      <div className="relative">
+                        <KeyRound size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          placeholder="Min 6 characters"
+                          className={cx("w-full rounded-2xl bg-white/80 border border-slate-200 pl-10 pr-4 py-2.5 font-bold text-slate-800 outline-none focus:border-indigo-500 transition-all shadow-glass-xs", isAasaan ? "text-sm" : "text-xs")}
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className={cx("font-extrabold text-slate-700 mb-1.5 block", isAasaan ? "text-sm" : "text-xs")}>Confirm Naya Password *</label>
+                      <div className="relative">
+                        <KeyRound size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          placeholder="Re-enter new password"
+                          className={cx("w-full rounded-2xl bg-white/80 border border-slate-200 pl-10 pr-4 py-2.5 font-bold text-slate-800 outline-none focus:border-indigo-500 transition-all shadow-glass-xs", isAasaan ? "text-sm" : "text-xs")}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={changePasswordMutation.isPending}
+                    className="btn-primary w-full py-3 text-xs font-black shadow-3d-btn flex items-center justify-center gap-2 disabled:opacity-40">
+                    {changePasswordMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <><KeyRound size={15} /> Password Update Karein</>}
+                  </button>
+                </form>
+              </div>
+
             </motion.div>
           )}
 
         </main>
       </div>
+
+      {/* ============================================================ */}
+      {/* CENTREPIECE DELETE DATA MODAL & DPDP REVEAL ANIMATION         */}
+      {/* ============================================================ */}
+      <AnimatePresence>
+        {deleteModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 grid place-items-center p-4">
+            
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 shadow-3d-float border border-white space-y-6 relative overflow-hidden text-left">
+              
+              {/* Close Button */}
+              <button
+                onClick={() => { setDeleteModalOpen(false); setDeleteStage('confirm') }}
+                className="absolute top-5 right-5 p-2 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors">
+                <X size={16} />
+              </button>
+
+              {/* STAGE A: CONFIRMATION */}
+              {deleteStage === 'confirm' && (
+                <div className="space-y-5">
+                  <div className="w-14 h-14 rounded-2xl bg-rose-50 border border-rose-200 grid place-items-center text-rose-600">
+                    <Trash2 size={26} />
+                  </div>
+
+                  <div>
+                    <h3 className="text-xl font-black text-slate-900">Mera PII Data Delete Karein?</h3>
+                    <p className="text-xs font-semibold text-slate-500 mt-1">
+                      DPDP Act Right-to-Erasure under Indian Law. This will purge your off-chain profile data (Name, Phone, Aadhaar).
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2 text-xs font-semibold">
+                    <div className="text-slate-700 font-extrabold uppercase text-[10px]">Off-Chain PII Records to be Wiped:</div>
+                    <div className="flex justify-between text-slate-600"><span>Full Name:</span> <span className="font-bold text-slate-800">{citizenName}</span></div>
+                    <div className="flex justify-between text-slate-600"><span>Mobile Number:</span> <span className="font-mono font-bold text-slate-800">+91 98765 43210</span></div>
+                    <div className="flex justify-between text-slate-600"><span>Aadhaar ID:</span> <span className="font-mono font-bold text-slate-800">XXXX-XXXX-9876</span></div>
+                  </div>
+
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      onClick={() => setDeleteModalOpen(false)}
+                      className="btn-ghost flex-1 py-3 text-xs font-extrabold">
+                      Cancel
+                    </button>
+                    <button
+                      onClick={startDeleteFlow}
+                      className="btn-danger flex-1 py-3 text-xs font-extrabold shadow-3d-btn flex items-center justify-center gap-2">
+                      <Trash2 size={15} /> Haa, Delete Karein
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* STAGE B: ERASING ANIMATION */}
+              {deleteStage === 'erasing' && (
+                <div className="py-8 text-center space-y-5">
+                  <Loader2 size={42} className="mx-auto text-rose-600 animate-spin" />
+                  <div>
+                    <h3 className="text-lg font-black text-slate-900">Off-Chain Records Wipe Progress…</h3>
+                    <p className="text-xs font-semibold text-slate-400 mt-1">Purging PII database tables under DPDP compliance rules...</p>
+                  </div>
+                </div>
+              )}
+
+              {/* STAGE C: REVEAL ANIMATED RESULT (EXACT PROMPT REQUIREMENTS) */}
+              {deleteStage === 'erased' && (
+                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="space-y-5">
+                  
+                  <div className="p-5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 space-y-1">
+                    <div className="text-sm font-black flex items-center gap-2">
+                      <CheckCircle2 size={18} className="text-emerald-600" /> Aapka record delete ho gaya.
+                    </div>
+                    <p className="text-xs font-bold text-emerald-800/90">
+                      Off-chain personal PII data completely erased from MongoDB database.
+                    </p>
+                  </div>
+
+                  {/* On-Chain Hash Reveal */}
+                  <div className="p-5 rounded-2xl bg-slate-900 text-white space-y-3 shadow-3d-card border border-slate-800 relative overflow-hidden">
+                    <div className="text-[10px] font-extrabold uppercase tracking-widest text-indigo-400 flex items-center gap-1.5">
+                      <Shield size={12} /> Polygon Blockchain Ledger
+                    </div>
+
+                    <div className="font-mono text-xs font-bold text-amber-400 bg-slate-800/90 p-3 rounded-xl border border-slate-700/80 break-all select-all">
+                      0x8f3a8b417e290f10c663b98c5204c21b
+                    </div>
+
+                    <p className="text-xs font-extrabold text-slate-300 italic">
+                      "Chain par ab sirf ye bacha hai: <span className="font-mono text-amber-300">0x8f3a…c21b</span>. 32 bytes, jinka ab koi matlab nahi."
+                    </p>
+                  </div>
+
+                  {/* Off-Chain vs On-Chain Comparison Diagram */}
+                  <div className="grid grid-cols-2 gap-3 text-left">
+                    <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 space-y-1">
+                      <div className="text-[10px] font-extrabold uppercase text-rose-700">Off-Chain Database</div>
+                      <div className="text-xs font-bold line-through text-rose-500">[REDACTED PII]</div>
+                      <div className="text-[9px] font-semibold text-rose-600">Erased under DPDP</div>
+                    </div>
+
+                    <div className="p-3.5 rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-900 space-y-1">
+                      <div className="text-[10px] font-extrabold uppercase text-indigo-700">Polygon Ledger</div>
+                      <div className="text-xs font-mono font-bold text-indigo-900">0x8f3a…c21b</div>
+                      <div className="text-[9px] font-semibold text-indigo-600">Immutable 32 Bytes Hash</div>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => { setDeleteModalOpen(false); setDeleteStage('confirm') }}
+                    className="btn-primary w-full py-3.5 text-xs font-black shadow-3d-btn">
+                    Close / Re-run Demo
+                  </button>
+                </motion.div>
+              )}
+
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
     </div>
   )
 }

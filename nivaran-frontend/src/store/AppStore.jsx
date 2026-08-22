@@ -15,6 +15,16 @@ export const useStore = () => useContext(Ctx)
 const hex = (n) => '0x' + Array.from({ length: n }, () => '0123456789abcdef'[Math.floor(Math.random() * 16)]).join('')
 const cid = () => 'bafybei' + Array.from({ length: 24 }, () => 'abcdefghijklmnopqrstuvwxyz234567'[Math.floor(Math.random() * 32)]).join('')
 
+const DEFAULT_SETTINGS = {
+  language: 'hinglish',
+  ttsEnabled: true,
+  contactChannel: 'whatsapp',
+  callVerification: true,
+  anonymousFiling: false,
+  wardOnlyLocation: true,
+  aasaanMode: false
+}
+
 export function StoreProvider({ children }) {
   const [grievances, setGrievances] = useState([])
   const [officers, setOfficers] = useState([])
@@ -22,6 +32,27 @@ export function StoreProvider({ children }) {
   const [assets, setAssets] = useState([])
   const [ready, setReady] = useState(false)
   const [toast, setToast] = useState(null)
+
+  const [settings, setSettings] = useState(() => {
+    try {
+      const saved = localStorage.getItem('nivaran_citizen_settings')
+      return saved ? { ...DEFAULT_SETTINGS, ...JSON.parse(saved) } : DEFAULT_SETTINGS
+    } catch {
+      return DEFAULT_SETTINGS
+    }
+  })
+
+  const updateCitizenSettings = useCallback((newSettings) => {
+    setSettings((prev) => {
+      const updated = typeof newSettings === 'function' ? newSettings(prev) : { ...prev, ...newSettings }
+      try {
+        localStorage.setItem('nivaran_citizen_settings', JSON.stringify(updated))
+      } catch (e) {
+        console.error('Failed to save settings:', e)
+      }
+      return updated
+    })
+  }, [])
 
   useEffect(() => {
     Promise.all([getGrievances(), getOfficers(), getChainLog(), getAssets()])
@@ -159,7 +190,7 @@ export function StoreProvider({ children }) {
   const mine = useMemo(() => grievances.filter((g) => g.mine), [grievances])
 
   const value = {
-    ready, grievances, officers, chain, assets, stats, mine, toast,
+    ready, grievances, officers, chain, assets, stats, mine, toast, settings, updateCitizenSettings,
     fileGrievance, citizenReopen, citizenConfirm, startWork, officerResolve, notify
   }
 

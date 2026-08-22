@@ -224,13 +224,10 @@ export default function Landing() {
               : 'bg-white/50 backdrop-blur-xl border border-white/60'
           }`}>
             <a href="#top" className="flex items-center gap-3 shrink-0">
-              <span className="w-10 h-10 rounded-2xl grid place-items-center text-white shadow-3d-btn"
-                    style={{ background: 'linear-gradient(135deg, #6366F1, #8B5CF6, #A855F7)' }}>
-                <ShieldCheck size={20} strokeWidth={2.5} />
-              </span>
+              <img src="/logo.png" alt="Nivaran AI Logo" className="w-12 h-12 object-contain transition-all hover:scale-105 drop-shadow-md" />
               <span className="leading-none">
                 <span className="block text-[16px] font-black tracking-tight text-gradient">NIVARAN AI</span>
-                <span className="block text-[9px] font-bold uppercase tracking-[0.18em] text-indigo-500/80 mt-0.5">
+                <span className="block text-[9px] font-extrabold uppercase tracking-[0.18em] text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 mt-0.5">
                   Intelligent Civic Resolution
                 </span>
               </span>
@@ -266,12 +263,6 @@ export default function Landing() {
         <CivicGlobe className="pointer-events-none absolute inset-x-0 top-[4%] mx-auto h-[78vh] w-full max-w-[1400px] opacity-[0.92]" />
 
         <div className="relative mx-auto flex min-h-[76vh] max-w-7xl flex-col justify-center px-5">
-          <Reveal>
-            <span className="inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-1.5 text-[11px] font-extrabold uppercase tracking-[0.18em] text-indigo-600 border border-white shadow-glass-xs backdrop-blur-md">
-              <span className="nv-ping" /> Indore Municipal Corporation · Intelligent Public Infrastructure
-            </span>
-          </Reveal>
-
           <Reveal delay={90}>
             <h1 className="nv-display mt-7 max-w-5xl text-[clamp(2.8rem,7.5vw,6.5rem)] font-black leading-[0.95] tracking-tight">
               Cities broken by silence.

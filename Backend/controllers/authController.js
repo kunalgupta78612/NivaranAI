@@ -266,10 +266,50 @@ const updateProfile = async (req, res) => {
   }
 };
 
+// ========================
+// @desc    Change citizen password
+// @route   PUT /api/auth/change-password
+// @access  Private
+// ========================
+const changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return errorResponse(res, 400, "Current password and new password are required");
+    }
+
+    if (newPassword.length < 6) {
+      return errorResponse(res, 400, "New password must be at least 6 characters long");
+    }
+
+    const citizen = await Citizen.findById(req.user.userId).select("+password");
+    if (!citizen) {
+      return errorResponse(res, 404, "Citizen not found");
+    }
+
+    const isMatch = await citizen.comparePassword(currentPassword);
+    if (!isMatch) {
+      return errorResponse(res, 401, "Current password is incorrect");
+    }
+
+    citizen.password = newPassword;
+    await citizen.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Password changed successfully",
+    });
+  } catch (error) {
+    console.error("Change Password Error:", error.message);
+    return errorResponse(res, 500, "An error occurred while changing password");
+  }
+};
+
 module.exports = {
   register,
   login,
   logout,
   getMe,
   updateProfile,
+  changePassword,
 };

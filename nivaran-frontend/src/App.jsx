@@ -27,18 +27,13 @@ function Shell() {
           animate={{ opacity: 1, scale: 1 }}
           className="text-center"
         >
-          <div className="relative w-16 h-16 mx-auto mb-5">
-            <div className="absolute inset-0 rounded-3xl animate-pulse"
-                 style={{ background: 'linear-gradient(135deg, #6366F1, #8B5CF6, #A855F7)', opacity: 0.3, filter: 'blur(12px)' }} />
-            <div className="relative w-16 h-16 rounded-3xl grid place-items-center"
-                 style={{ background: 'linear-gradient(135deg, #6366F1, #8B5CF6)', boxShadow: '0 8px 24px -4px rgba(99, 102, 241, 0.4)' }}>
-              <svg className="w-8 h-8 text-white animate-pulse" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z" />
-              </svg>
-            </div>
+          <div className="relative w-20 h-20 mx-auto mb-5">
+            <img src="/logo.png" alt="Nivaran AI Logo" className="w-20 h-20 object-contain drop-shadow-md animate-pulse" />
           </div>
           <div className="text-xl font-black text-gradient tracking-tight">NIVARAN AI</div>
-          <p className="text-xs text-slate-400 font-semibold mt-1.5">Initializing civic intelligence…</p>
+          <p className="text-xs font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 mt-1.5">
+            Intelligent Civic Resolution
+          </p>
           <div className="w-32 h-1 rounded-full overflow-hidden mx-auto mt-4 bg-indigo-100">
             <motion.div
               initial={{ x: '-100%' }}
@@ -63,7 +58,8 @@ function Shell() {
         <Layout>
           <Routes>
             <Route path="/citizen" element={<CitizenPortal />} />
-            <Route path="/citizen/track" element={<CitizenTrack />} />
+            <Route path="/citizen/track" element={<CitizenPortal defaultTab="track" />} />
+            <Route path="/citizen/settings" element={<CitizenPortal defaultTab="settings" />} />
             <Route path="/officer" element={<OfficerBoard />} />
             <Route path="/admin" element={<GodMode />} />
             <Route path="/admin/silence" element={<SilenceDetector />} />
