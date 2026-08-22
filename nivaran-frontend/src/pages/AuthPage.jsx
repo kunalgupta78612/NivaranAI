@@ -1,5 +1,6 @@
 ﻿import { useState } from 'react'
 import { useRegister, useLogin } from '../lib/authApi'
+import { useDepartmentRegister, useDepartmentLogin } from '../lib/departmentAuthApi'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -37,13 +38,31 @@ export default function AuthPage() {
   const [errors, setErrors] = useState({})
   const [apiError, setApiError] = useState(null)
 
-  // TanStack Query mutations
+  // TanStack Query mutations — Citizen
   const registerMutation = useRegister()
   const loginMutation = useLogin()
 
+  // TanStack Query mutations — Department
+  const deptRegisterMutation = useDepartmentRegister()
+  const deptLoginMutation = useDepartmentLogin()
+
+  // Department-specific form state
+  const [deptFormData, setDeptFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    department: 'Sanitation Department',
+    city: 'Indore',
+    state: 'Madhya Pradesh',
+  })
+
+  function handleDeptChange(field, value) {
+    setDeptFormData((prev) => ({ ...prev, [field]: value }))
+  }
+
   const personas = {
-    citizen: { name: 'Astha P.', detail: 'Vijay Nagar, Ward 12', route: '/citizen/dashboard', badge: 'Citizen Persona' },
-    officer: { name: 'R. K. Sharma', detail: 'PWD Zone 3 Officer', route: '/officer', badge: 'Ground Officer Persona' },
+    citizen: { name: 'Astha P.', detail: 'Vijay Nagar, Ward 12', route: '/citizen', badge: 'Citizen Persona' },
+    officer: { name: 'R. K. Sharma', detail: 'PWD Zone 3 Officer', route: '/officer', badge: 'Department Persona' },
     admin: { name: 'Indore Municipal Corp.', detail: 'City Commissioner', route: '/admin', badge: 'Commissioner Persona' }
   }
 
@@ -117,28 +136,42 @@ export default function AuthPage() {
 
   async function handleSubmit(e) {
     e.preventDefault()
-    if (isSignup && !validate()) return
     setApiError(null)
     setLoading(true)
 
     try {
-      if (isSignup) {
-        // Register via backend API
-        await registerMutation.mutateAsync(formData)
-        // After successful registration, auto-login
-        await loginMutation.mutateAsync({
-          email: formData.email,
-          password: formData.password,
-        })
+      if (role === 'officer') {
+        // Department auth flow
+        if (isSignup) {
+          await deptRegisterMutation.mutateAsync(deptFormData)
+          await deptLoginMutation.mutateAsync({
+            email: deptFormData.email,
+            password: deptFormData.password,
+          })
+        } else {
+          await deptLoginMutation.mutateAsync({
+            email: deptFormData.email,
+            password: deptFormData.password,
+          })
+        }
+        nav('/officer')
       } else {
-        // Login via backend API
-        await loginMutation.mutateAsync({
-          email: formData.email,
-          password: formData.password,
-        })
+        // Citizen auth flow
+        if (isSignup && !validate()) { setLoading(false); return }
+        if (isSignup) {
+          await registerMutation.mutateAsync(formData)
+          await loginMutation.mutateAsync({
+            email: formData.email,
+            password: formData.password,
+          })
+        } else {
+          await loginMutation.mutateAsync({
+            email: formData.email,
+            password: formData.password,
+          })
+        }
+        nav(personas[role].route)
       }
-      // Redirect to selected role dashboard on success
-      nav(personas[role].route)
     } catch (err) {
       setApiError(err.message || "Something went wrong. Please try again.")
     } finally {
@@ -253,7 +286,7 @@ export default function AuthPage() {
             <div className="grid grid-cols-3 gap-1.5 p-1.5 rounded-2xl bg-slate-100/80 border border-slate-200/60">
               {[
                 { key: 'citizen', label: 'Citizen', icon: User },
-                { key: 'officer', label: 'Officer', icon: HardHat },
+                { key: 'officer', label: 'Department', icon: HardHat },
                 { key: 'admin', label: 'Admin', icon: Building2 }
               ].map((t) => (
                 <button key={t.key} type="button" onClick={() => setRole(t.key)}
@@ -282,7 +315,112 @@ export default function AuthPage() {
 
             {/* Registration / Login Form */}
             <form onSubmit={handleSubmit} className="space-y-4">
-              {isSignup ? (
+              {role === 'officer' ? (
+                /* ===== DEPARTMENT REGISTRATION / LOGIN ===== */
+                isSignup ? (
+                  <>
+                    <div className="space-y-3 pt-1">
+                      <div className="text-xs font-extrabold text-slate-400 uppercase tracking-widest">1. Department Information</div>
+
+                      <div>
+                        <label className="label mb-1 block">Officer / Representative Name *</label>
+                        <div className="relative">
+                          <User size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                          <input type="text" value={deptFormData.name} onChange={(e) => handleDeptChange('name', e.target.value)}
+                            placeholder="R. K. Sharma"
+                            className="w-full rounded-2xl pl-10 pr-3 py-2.5 text-xs font-bold text-slate-800 placeholder:text-slate-300 outline-none transition-all border border-slate-200 focus:border-indigo-500 bg-white/70" />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="label mb-1 block">Department *</label>
+                        <select value={deptFormData.department} onChange={(e) => handleDeptChange('department', e.target.value)}
+                          className="w-full rounded-2xl px-3.5 py-2.5 text-xs font-bold text-slate-800 outline-none transition-all border border-slate-200 focus:border-indigo-500 bg-white/70">
+                          <option value="Sanitation Department">Sanitation Department</option>
+                          <option value="Roads & Public Works">Roads & Public Works</option>
+                          <option value="Street Lighting">Street Lighting</option>
+                          <option value="Water Supply">Water Supply</option>
+                          <option value="Drainage & Sewerage">Drainage & Sewerage</option>
+                          <option value="Electricity & Power">Electricity & Power</option>
+                          <option value="Animal Control">Animal Control</option>
+                          <option value="Public Health">Public Health</option>
+                          <option value="Traffic & Transport">Traffic & Transport</option>
+                          <option value="Encroachment & Illegal Construction">Encroachment & Illegal Construction</option>
+                        </select>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="label mb-1 block">City</label>
+                          <input type="text" value={deptFormData.city} onChange={(e) => handleDeptChange('city', e.target.value)}
+                            className="w-full rounded-2xl px-3 py-2.5 text-xs font-bold text-slate-800 outline-none border border-slate-200 bg-white/70" />
+                        </div>
+                        <div>
+                          <label className="label mb-1 block">State</label>
+                          <input type="text" value={deptFormData.state} onChange={(e) => handleDeptChange('state', e.target.value)}
+                            className="w-full rounded-2xl px-3 py-2.5 text-xs font-bold text-slate-800 outline-none border border-slate-200 bg-white/70" />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3 pt-2">
+                      <div className="text-xs font-extrabold text-slate-400 uppercase tracking-widest">2. Credentials</div>
+
+                      <div>
+                        <label className="label mb-1 block">Official Email Address *</label>
+                        <div className="relative">
+                          <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                          <input type="email" value={deptFormData.email} onChange={(e) => handleDeptChange('email', e.target.value)}
+                            placeholder="officer.pwd@indore.gov.in"
+                            className="w-full rounded-2xl pl-10 pr-3 py-2.5 text-xs font-bold text-slate-800 placeholder:text-slate-300 outline-none transition-all border border-slate-200 focus:border-indigo-500 bg-white/70" />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="label mb-1 block">Password (min 6 chars) *</label>
+                        <div className="relative">
+                          <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                          <input type={showPassword ? 'text' : 'password'} value={deptFormData.password} onChange={(e) => handleDeptChange('password', e.target.value)}
+                            placeholder="••••••••••••"
+                            className="w-full rounded-2xl pl-10 pr-10 py-2.5 text-xs font-bold text-slate-800 placeholder:text-slate-300 outline-none transition-all border border-slate-200 focus:border-indigo-500 bg-white/70" />
+                          <button type="button" onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                            {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  /* Department Login Fields */
+                  <div className="space-y-3.5 pt-2">
+                    <div>
+                      <label className="label mb-1.5 block">Department Email *</label>
+                      <div className="relative">
+                        <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <input type="email" required value={deptFormData.email} onChange={(e) => handleDeptChange('email', e.target.value)}
+                          placeholder="officer.pwd@indore.gov.in"
+                          className="w-full rounded-2xl pl-10 pr-4 py-3 text-xs font-bold text-slate-800 placeholder:text-slate-300 outline-none transition-all border border-slate-200 focus:border-indigo-500 bg-white/70" />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="label mb-1.5 block">Password *</label>
+                      <div className="relative">
+                        <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <input type={showPassword ? 'text' : 'password'} required value={deptFormData.password} onChange={(e) => handleDeptChange('password', e.target.value)}
+                          placeholder="••••••••••••"
+                          className="w-full rounded-2xl pl-10 pr-10 py-3 text-xs font-bold text-slate-800 placeholder:text-slate-300 outline-none transition-all border border-slate-200 focus:border-indigo-500 bg-white/70" />
+                        <button type="button" onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                          {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )
+              ) : isSignup ? (
+                /* ===== CITIZEN REGISTRATION ===== */
                 <>
                   {/* Personal Information */}
                   <div className="space-y-3 pt-1">
@@ -407,7 +545,7 @@ export default function AuthPage() {
                       <div className="relative">
                         <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                         <input type={showPassword ? 'text' : 'password'} value={formData.password} onChange={(e) => handleChange('password', e.target.value)}
-                          placeholder="Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢"
+                          placeholder="••••••••••••"
                           className="w-full rounded-2xl pl-10 pr-10 py-2.5 text-xs font-bold text-slate-800 placeholder:text-slate-300 outline-none transition-all border border-slate-200 focus:border-indigo-500 bg-white/70" />
                         <button type="button" onClick={() => setShowPassword(!showPassword)}
                           className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
@@ -419,14 +557,14 @@ export default function AuthPage() {
                   </div>
                 </>
               ) : (
-                /* Login Fields: Email and Password only */
+                /* ===== CITIZEN LOGIN ===== */
                 <div className="space-y-3.5 pt-2">
                   <div>
                     <label className="label mb-1.5 block">Email Address *</label>
                     <div className="relative">
                       <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                       <input type="email" required value={formData.email} onChange={(e) => handleChange('email', e.target.value)}
-                        placeholder={role === 'citizen' ? 'astha.patel@indorecivic.gov.in' : role === 'officer' ? 'officer.pwd@indore.gov.in' : 'commissioner@indore.gov.in'}
+                        placeholder={role === 'citizen' ? 'astha.patel@indorecivic.gov.in' : 'commissioner@indore.gov.in'}
                         className="w-full rounded-2xl pl-10 pr-4 py-3 text-xs font-bold text-slate-800 placeholder:text-slate-300 outline-none transition-all border border-slate-200 focus:border-indigo-500 bg-white/70" />
                     </div>
                   </div>
@@ -436,7 +574,7 @@ export default function AuthPage() {
                     <div className="relative">
                       <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                       <input type={showPassword ? 'text' : 'password'} required value={formData.password} onChange={(e) => handleChange('password', e.target.value)}
-                        placeholder="Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢"
+                        placeholder="••••••••••••"
                         className="w-full rounded-2xl pl-10 pr-10 py-3 text-xs font-bold text-slate-800 placeholder:text-slate-300 outline-none transition-all border border-slate-200 focus:border-indigo-500 bg-white/70" />
                       <button type="button" onClick={() => setShowPassword(!showPassword)}
                         className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
@@ -458,8 +596,10 @@ export default function AuthPage() {
               <button type="submit" disabled={loading}
                 className="btn-primary w-full py-3.5 text-sm font-extrabold shadow-lg flex items-center justify-center gap-2 mt-4">
                 {loading
-                  ? <span className="animate-pulse">Saving Citizen RecordÃ¢â‚¬Â¦</span>
-                  : isSignup ? <><UserPlus size={18} /> Register Verified Citizen</> : <><LogIn size={18} /> Sign In to {role === 'citizen' ? 'Citizen Portal' : role === 'officer' ? 'Task Board' : 'God Mode'}</>}
+                  ? <span className="animate-pulse">{role === 'officer' ? 'Processing Department…' : 'Saving Citizen Record…'}</span>
+                  : isSignup
+                    ? (role === 'officer' ? <><UserPlus size={18} /> Register Department</> : <><UserPlus size={18} /> Register Verified Citizen</>)
+                    : <><LogIn size={18} /> Sign In to {role === 'citizen' ? 'Citizen Portal' : role === 'officer' ? 'Department Dashboard' : 'God Mode'}</>}
               </button>
             </form>
           </motion.div>

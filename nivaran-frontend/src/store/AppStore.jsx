@@ -1,4 +1,4 @@
-﻿// ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
 // One shared store for all three dashboards.
 //
 // This is what makes the demo work: a citizen action mutates the SAME state
@@ -57,12 +57,12 @@ export function StoreProvider({ children }) {
   useEffect(() => {
     Promise.all([getGrievances(), getOfficers(), getChainLog(), getAssets()])
       .then(([g, o, c, a]) => {
-        const grievancesList = Array.isArray(g) ? g : (g?.grievances || [])
-        const seeded = grievancesList.map((x) => ({ ...x, mine: false }))
+        const rawList = Array.isArray(g) ? g : (g?.grievances || g?.data || [])
+        const seeded = rawList.map((x) => ({ ...x, mine: false }))
         setGrievances(seeded)
-        setOfficers(Array.isArray(o) ? o : (o?.officers || []))
-        setChain(Array.isArray(c) ? c : (c?.chain || []))
-        setAssets(Array.isArray(a) ? a : (a?.assets || []))
+        setOfficers(Array.isArray(o) ? o : (o?.officers || o?.data || []))
+        setChain(Array.isArray(c) ? c : (c?.chain || c?.data || []))
+        setAssets(Array.isArray(a) ? a : (a?.assets || a?.data || []))
         setReady(true)
       })
       .catch((err) => {

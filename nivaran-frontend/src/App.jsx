@@ -2,6 +2,7 @@
 import { motion } from 'framer-motion'
 import Layout from './components/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
+import DepartmentProtectedRoute from './components/DepartmentProtectedRoute'
 import PublicRoute from './components/PublicRoute'
 import { StoreProvider, useStore } from './store/AppStore'
 
@@ -81,13 +82,24 @@ function Shell() {
         }
       />
 
-      {/* Demo Layout Routes for Officer & Admin */}
+      {/* Protected Department Route */}
+      <Route
+        path="/officer"
+        element={
+          <DepartmentProtectedRoute>
+            <Layout>
+              <OfficerBoard />
+            </Layout>
+          </DepartmentProtectedRoute>
+        }
+      />
+
+      {/* Demo Layout Routes for Admin */}
       <Route
         path="/*"
         element={
           <Layout>
             <Routes>
-              <Route path="/officer" element={<OfficerBoard />} />
               <Route path="/admin" element={<GodMode />} />
               <Route path="/admin/silence" element={<SilenceDetector />} />
               <Route path="/admin/assets" element={<AssetIntelligence />} />

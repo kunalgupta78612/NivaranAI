@@ -42,10 +42,11 @@ const validateRegistration = [
   body("dateOfBirth")
     .notEmpty()
     .withMessage("Date of birth is required")
-    .isISO8601()
-    .withMessage("Please provide a valid date of birth (YYYY-MM-DD)")
     .custom((value) => {
       const dob = new Date(value);
+      if (isNaN(dob.getTime())) {
+        throw new Error("Please provide a valid date of birth (YYYY-MM-DD)");
+      }
       const today = new Date();
       if (dob >= today) {
         throw new Error("Date of birth must be in the past");
