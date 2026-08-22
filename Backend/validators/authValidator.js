@@ -16,8 +16,7 @@ const validateRegistration = [
     .notEmpty()
     .withMessage("Email is required")
     .isEmail()
-    .withMessage("Please provide a valid email address")
-    .normalizeEmail(),
+    .withMessage("Please provide a valid email address"),
 
   body("mobile")
     .trim()
@@ -29,17 +28,14 @@ const validateRegistration = [
   body("password")
     .notEmpty()
     .withMessage("Password is required")
-    .isLength({ min: 8 })
-    .withMessage("Password must be at least 8 characters")
-    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]/)
-    .withMessage(
-      "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character"
-    ),
+    .isLength({ min: 6 })
+    .withMessage("Password must be at least 6 characters"),
 
   body("gender")
     .trim()
     .notEmpty()
     .withMessage("Gender is required")
+    .toLowerCase()
     .isIn(["male", "female", "other"])
     .withMessage("Gender must be male, female, or other"),
 
@@ -104,15 +100,13 @@ const validateLogin = [
     .notEmpty()
     .withMessage("Email is required")
     .isEmail()
-    .withMessage("Please provide a valid email address")
-    .normalizeEmail(),
+    .withMessage("Please provide a valid email address"),
 
   body("password").notEmpty().withMessage("Password is required"),
 ];
 
 /**
  * Validation rules for profile update
- * All fields are optional since this is a partial update
  */
 const validateProfileUpdate = [
   body("fullName")
@@ -130,6 +124,7 @@ const validateProfileUpdate = [
   body("gender")
     .optional()
     .trim()
+    .toLowerCase()
     .isIn(["male", "female", "other"])
     .withMessage("Gender must be male, female, or other"),
 
@@ -172,7 +167,6 @@ const validateProfileUpdate = [
 
   body("profilePhoto").optional().isString().withMessage("Profile photo must be a string URL"),
 
-  // Explicitly reject fields that citizens cannot update
   body("role").not().exists().withMessage("You cannot update your role"),
   body("accountStatus").not().exists().withMessage("You cannot update your account status"),
   body("password").not().exists().withMessage("Use the password change endpoint to update your password"),

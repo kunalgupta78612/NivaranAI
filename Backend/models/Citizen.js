@@ -31,7 +31,7 @@ const citizenSchema = new mongoose.Schema(
     password: {
       type: String,
       required: [true, "Password is required"],
-      minlength: [8, "Password must be at least 8 characters"],
+      minlength: [6, "Password must be at least 6 characters"],
       select: false, // Never return password in queries by default
     },
     gender: {
@@ -166,8 +166,8 @@ citizenSchema.methods.toJSON = function () {
 };
 
 // Indexes for performance
-citizenSchema.index({ email: 1 });
-citizenSchema.index({ mobile: 1 });
+// email index created automatically via unique: true
+// mobile index created automatically via unique: true
 
 const Citizen = mongoose.model("Citizen", citizenSchema);
 

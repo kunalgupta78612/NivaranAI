@@ -1,16 +1,18 @@
-import { useState, useRef, useEffect } from 'react'
+﻿import { useState, useRef, useEffect } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Activity, ChevronDown, Check, CheckCircle2, AlertTriangle, Info, XCircle, ShieldCheck, Sparkles } from 'lucide-react'
+import { LogOut, Activity, ChevronDown, Check, CheckCircle2, AlertTriangle, Info, XCircle, ShieldCheck, Sparkles } from 'lucide-react'
 import { ROLES, roleOfPath } from '../roles'
 import { useStore } from '../store/AppStore'
 import { cx } from '../lib/utils'
+import { useLogout } from '../lib/authApi'
 
 export default function Layout({ children }) {
   const loc = useLocation()
   const nav = useNavigate()
   const role = ROLES[roleOfPath(loc.pathname)]
   const { toast } = useStore()
+  const logoutMutation = useLogout()
   const [open, setOpen] = useState(false)
   const box = useRef(null)
 
@@ -174,3 +176,4 @@ export default function Layout({ children }) {
     </div>
   )
 }
+

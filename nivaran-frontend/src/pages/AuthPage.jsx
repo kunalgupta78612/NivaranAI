@@ -1,4 +1,5 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
+import { useRegister, useLogin } from '../lib/authApi'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -34,6 +35,11 @@ export default function AuthPage() {
   })
 
   const [errors, setErrors] = useState({})
+  const [apiError, setApiError] = useState(null)
+
+  // TanStack Query mutations
+  const registerMutation = useRegister()
+  const loginMutation = useLogin()
 
   const personas = {
     citizen: { name: 'Astha P.', detail: 'Vijay Nagar, Ward 12', route: '/citizen', badge: 'Citizen Persona' },
@@ -109,15 +115,35 @@ export default function AuthPage() {
     return Object.keys(newErrors).length === 0
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault()
     if (isSignup && !validate()) return
-
+    setApiError(null)
     setLoading(true)
-    setTimeout(() => {
+
+    try {
+      if (isSignup) {
+        // Register via backend API
+        await registerMutation.mutateAsync(formData)
+        // After successful registration, auto-login
+        await loginMutation.mutateAsync({
+          email: formData.email,
+          password: formData.password,
+        })
+      } else {
+        // Login via backend API
+        await loginMutation.mutateAsync({
+          email: formData.email,
+          password: formData.password,
+        })
+      }
+      // Redirect to citizen dashboard on success
+      nav("/citizen")
+    } catch (err) {
+      setApiError(err.message || "Something went wrong. Please try again.")
+    } finally {
       setLoading(false)
-      nav(personas[role].route)
-    }, 600)
+    }
   }
 
   function quickLogin(rKey) {
@@ -384,7 +410,7 @@ export default function AuthPage() {
                       <div className="relative">
                         <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                         <input type={showPassword ? 'text' : 'password'} value={formData.password} onChange={(e) => handleChange('password', e.target.value)}
-                          placeholder="••••••••••••"
+                          placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                           className="w-full rounded-2xl pl-10 pr-10 py-2.5 text-xs font-bold text-slate-800 placeholder:text-slate-300 outline-none transition-all border border-slate-200 focus:border-indigo-500 bg-white/70" />
                         <button type="button" onClick={() => setShowPassword(!showPassword)}
                           className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
@@ -413,7 +439,7 @@ export default function AuthPage() {
                     <div className="relative">
                       <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                       <input type={showPassword ? 'text' : 'password'} required value={formData.password} onChange={(e) => handleChange('password', e.target.value)}
-                        placeholder="••••••••••••"
+                        placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                         className="w-full rounded-2xl pl-10 pr-10 py-3 text-xs font-bold text-slate-800 placeholder:text-slate-300 outline-none transition-all border border-slate-200 focus:border-indigo-500 bg-white/70" />
                       <button type="button" onClick={() => setShowPassword(!showPassword)}
                         className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
@@ -424,10 +450,18 @@ export default function AuthPage() {
                 </div>
               )}
 
+              {/* API Error Display */}
+              {apiError && (
+                <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-xs font-bold text-rose-600 flex items-center gap-2">
+                  <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
+                  {apiError}
+                </div>
+              )}
+
               <button type="submit" disabled={loading}
                 className="btn-primary w-full py-3.5 text-sm font-extrabold shadow-lg flex items-center justify-center gap-2 mt-4">
                 {loading
-                  ? <span className="animate-pulse">Saving Citizen Record…</span>
+                  ? <span className="animate-pulse">Saving Citizen Recordâ€¦</span>
                   : isSignup ? <><UserPlus size={18} /> Register Verified Citizen</> : <><LogIn size={18} /> Sign In to {role === 'citizen' ? 'Citizen Portal' : role === 'officer' ? 'Task Board' : 'God Mode'}</>}
               </button>
             </form>
@@ -438,7 +472,7 @@ export default function AuthPage() {
       {/* Footer */}
       <footer className="relative z-10 py-6 border-t border-indigo-100/60 bg-white/40 backdrop-blur-md mt-6">
         <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-semibold text-slate-500">
-          <div>Indore Municipal Corporation · Nivaran AI</div>
+          <div>Indore Municipal Corporation Â· Nivaran AI</div>
           <div className="flex items-center gap-6">
             <Link to="/" className="hover:text-indigo-600 transition-colors">Home</Link>
             <Link to="/citizen" className="hover:text-indigo-600 transition-colors">Citizen</Link>
@@ -450,3 +484,5 @@ export default function AuthPage() {
     </div>
   )
 }
+
+
