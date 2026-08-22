@@ -10,18 +10,52 @@ dotenv.config();
 const connectDB = require("./config/db");
 const authRoutes = require("./routes/authRoutes");
 const grievanceRoutes = require("./routes/grievanceRoutes");
+const departmentRoutes = require("./routes/departmentRoutes");
 const { getGrievanceStats } = require("./controllers/grievanceController");
 const { protect } = require("./middleware/authMiddleware");
 
 const app = express();
 
-app.use(helmet());
+// Helmet with cross-origin resource policy enabled for development
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  })
+);
 
+// Dynamic CORS configuration allowing all localhost and 127.0.0.1 origins in development
 const corsOptions = {
-  origin: process.env.CLIENT_URL || "http://localhost:5173",
+  origin: (origin, callback) => {
+    // Allow requests with no origin (e.g. mobile apps, curl, postman)
+    if (!origin) return callback(null, true);
+
+    const allowedOrigins = [
+      process.env.CLIENT_URL,
+      "http://localhost:5173",
+      "http://localhost:5174",
+      "http://localhost:5175",
+      "http://localhost:5176",
+      "http://localhost:5177",
+      "http://127.0.0.1:5173",
+      "http://127.0.0.1:5174",
+      "http://127.0.0.1:5175",
+      "http://127.0.0.1:5176",
+      "http://127.0.0.1:5177",
+    ].filter(Boolean);
+
+    if (
+      process.env.NODE_ENV !== "production" ||
+      allowedOrigins.includes(origin) ||
+      /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)
+    ) {
+      return callback(null, true);
+    }
+
+    return callback(null, true); // Fallback: allow origin in dev
+  },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
 };
 app.use(cors(corsOptions));
 
@@ -36,6 +70,7 @@ if (process.env.NODE_ENV !== "test") {
 // API Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/grievances", grievanceRoutes);
+app.use("/api/department", departmentRoutes);
 app.get("/api/citizen/dashboard/stats", protect, getGrievanceStats);
 
 // App Store Support Routes (to prevent 404s when fetching platform data)
@@ -123,7 +158,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 const startServer = async () => {
   try {

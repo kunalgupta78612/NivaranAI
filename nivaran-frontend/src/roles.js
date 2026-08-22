@@ -18,7 +18,7 @@ export const ROLES = {
   },
   officer: {
     key: 'officer',
-    label: 'Ground Officer',
+    label: 'Department',
     person: 'R. K. Sharma · PWD',
     icon: HardHat,
     accent: '#F59E0B',
@@ -26,7 +26,7 @@ export const ROLES = {
     accentClass: 'text-amber-600',
     home: '/officer',
     blurb: 'Kanban board · SLA timers',
-    nav: [{ to: '/officer', label: 'Task Board' }]
+    nav: [{ to: '/officer', label: 'Department Board' }]
   },
   admin: {
     key: 'admin',

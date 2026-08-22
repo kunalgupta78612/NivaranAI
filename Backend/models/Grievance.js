@@ -1,4 +1,4 @@
-﻿const mongoose = require("mongoose");
+const mongoose = require("mongoose");
 
 const grievanceSchema = new mongoose.Schema(
   {
@@ -74,12 +74,14 @@ const grievanceSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: [
+        "pending",
         "assigned",
         "in_progress",
         "closed_unverified",
         "verified_resolved",
         "reopened",
         "escalated",
+        "rejected",
       ],
       default: "assigned",
     },
@@ -107,6 +109,7 @@ grievanceSchema.set("toObject", { virtuals: true });
 
 // Compound index for querying user grievances by date
 grievanceSchema.index({ citizen: 1, createdAt: -1 });
+grievanceSchema.index({ dept: 1, createdAt: -1 });
 
 const Grievance = mongoose.model("Grievance", grievanceSchema);
 

@@ -22,7 +22,7 @@ export default function Layout({ children }) {
     return () => document.removeEventListener('mousedown', h)
   }, [])
 
-  if (loc.pathname.startsWith('/citizen')) {
+  if (loc.pathname.startsWith('/citizen') || loc.pathname.startsWith('/officer')) {
     return <>{children}</>
   }
 

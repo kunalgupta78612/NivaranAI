@@ -165,7 +165,7 @@ const ROLES = [
     dot: 'bg-emerald-400'
   },
   {
-    name: 'Ground Officer Board',
+    name: 'Department Board',
     sub: 'Field queue · SLA timers',
     desc: 'AI-routed work items with live countdowns, map directions, and mandatory photo proof verification upon completion.',
     to: '/officer',

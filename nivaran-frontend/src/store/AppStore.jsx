@@ -1,4 +1,4 @@
-﻿// ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
 // One shared store for all three dashboards.
 //
 // This is what makes the demo work: a citizen action mutates the SAME state
@@ -58,18 +58,19 @@ export function StoreProvider({ children }) {
     Promise.all([getGrievances(), getOfficers(), getChainLog(), getAssets()])
       .then(([g, o, c, a]) => {
         // Seed a few tickets as "mine" so the citizen's My Grievances list is
-        // never empty on stage â€” including one already awaiting verification,
+        // never empty on stage — including one already awaiting verification,
         // so the Re-open trap is visible the moment you open the portal.
-        const seeded = g.map((x, i) => {
+        const rawList = Array.isArray(g) ? g : (g?.grievances || g?.data || [])
+        const seeded = rawList.map((x, i) => {
           if (i === 0) return { ...x, mine: true, status: 'closed_unverified', proofCid: cid() }
           if (i === 1) return { ...x, mine: true, status: 'in_progress' }
           if (i === 2) return { ...x, mine: true, status: 'verified_resolved' }
           return x
         })
         setGrievances(seeded)
-        setOfficers(o)
-        setChain(c)
-        setAssets(a)
+        setOfficers(Array.isArray(o) ? o : (o?.data || []))
+        setChain(Array.isArray(c) ? c : (c?.data || []))
+        setAssets(Array.isArray(a) ? a : (a?.data || []))
         setReady(true)
       })
       .catch((err) => {
