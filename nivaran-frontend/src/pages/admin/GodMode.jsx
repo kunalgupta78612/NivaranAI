@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -34,10 +34,14 @@ export default function GodMode() {
   const approveDeptMutation = useApproveDepartment()
   const rejectDeptMutation = useRejectDepartment()
 
-  const stats = statsRes?.stats || { totalDepartments: 0, totalCitizens: 0, totalGrievances: 0 }
   const departmentList = deptRes?.departments || []
   const citizenList = citizenRes?.citizens || []
   const grievanceList = grievanceRes?.grievances || []
+  const stats = {
+    totalDepartments: statsRes?.stats?.totalDepartments ?? departmentList.length,
+    totalCitizens: statsRes?.stats?.totalCitizens ?? citizenList.length,
+    totalGrievances: statsRes?.stats?.totalGrievances ?? grievanceList.length,
+  }
 
   const handleLogout = () => {
     logoutMutation.mutate(null, {

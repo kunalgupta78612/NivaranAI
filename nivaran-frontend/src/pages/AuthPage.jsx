@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { useRegister, useLogin } from '../lib/authApi'
 import { useDepartmentRegister, useDepartmentLogin } from '../lib/departmentAuthApi'
 import { useAdminLogin } from '../lib/adminAuthApi'
@@ -143,15 +143,17 @@ export default function AuthPage() {
     setSuccessMsg(null)
     setLoading(true)
 
+    const activeRole = (isSignup && role === 'admin') ? 'citizen' : role
+
     try {
-      if (role === 'admin') {
+      if (activeRole === 'admin') {
         // Built-in Admin Login
         await adminLoginMutation.mutateAsync({
           email: formData.email || 'astha@gmail.com',
           password: formData.password || '12345678',
         })
         nav('/admin')
-      } else if (role === 'officer') {
+      } else if (activeRole === 'officer') {
         // Department Auth Flow
         if (isSignup) {
           await deptRegisterMutation.mutateAsync(deptFormData)
@@ -179,7 +181,7 @@ export default function AuthPage() {
             password: formData.password,
           })
         }
-        nav(personas[role].route)
+        nav(personas[activeRole].route)
       }
     } catch (err) {
       const msg = err?.response?.data?.message || err.message || "Something went wrong. Please try again."
@@ -295,20 +297,23 @@ export default function AuthPage() {
             </div>
 
             {/* Role Switcher Tabs */}
-            <div className="grid grid-cols-3 gap-1.5 p-1.5 rounded-2xl bg-slate-100/80 border border-slate-200/60">
+            <div className={cx("grid gap-1.5 p-1.5 rounded-2xl bg-slate-100/80 border border-slate-200/60", isSignup ? "grid-cols-2" : "grid-cols-3")}>
               {[
                 { key: 'citizen', label: 'Citizen', icon: User },
                 { key: 'officer', label: 'Department', icon: HardHat },
-                { key: 'admin', label: 'Admin', icon: Building2 }
-              ].map((t) => (
-                <button key={t.key} type="button" onClick={() => setRole(t.key)}
-                  className={cx('py-2 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 transition-all',
-                    role === t.key
-                      ? 'bg-white text-indigo-600 shadow-md scale-[1.02]'
-                      : 'text-slate-500 hover:text-slate-800')}>
-                  <t.icon size={13} /> {t.label}
-                </button>
-              ))}
+                ...(!isSignup ? [{ key: 'admin', label: 'Admin', icon: Building2 }] : [])
+              ].map((t) => {
+                const currentActiveRole = (isSignup && role === 'admin') ? 'citizen' : role
+                return (
+                  <button key={t.key} type="button" onClick={() => setRole(t.key)}
+                    className={cx('py-2 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 transition-all',
+                      currentActiveRole === t.key
+                        ? 'bg-white text-indigo-600 shadow-md scale-[1.02]'
+                        : 'text-slate-500 hover:text-slate-800')}>
+                    <t.icon size={13} /> {t.label}
+                  </button>
+                )
+              })}
             </div>
 
 

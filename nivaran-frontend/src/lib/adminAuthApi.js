@@ -1,4 +1,4 @@
-﻿import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   loginAdmin,
   logoutAdmin,
@@ -105,6 +105,7 @@ export function useApproveDepartment() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminDepartments'] })
       queryClient.invalidateQueries({ queryKey: ['adminStats'] })
+      queryClient.invalidateQueries({ queryKey: ['currentDepartment'] })
     },
   })
 }
@@ -116,6 +117,7 @@ export function useRejectDepartment() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminDepartments'] })
       queryClient.invalidateQueries({ queryKey: ['adminStats'] })
+      queryClient.invalidateQueries({ queryKey: ['currentDepartment'] })
     },
   })
 }

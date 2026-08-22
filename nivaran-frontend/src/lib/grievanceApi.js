@@ -59,6 +59,10 @@ export function useSubmitGrievance() {
       queryClient.invalidateQueries({ queryKey: ['grievanceCount'] })
       queryClient.invalidateQueries({ queryKey: ['dashboardStats'] })
       queryClient.invalidateQueries({ queryKey: ['grievanceStats'] })
+      queryClient.invalidateQueries({ queryKey: ['adminStats'] })
+      queryClient.invalidateQueries({ queryKey: ['adminAllGrievances'] })
+      queryClient.invalidateQueries({ queryKey: ['departmentGrievances'] })
+      queryClient.invalidateQueries({ queryKey: ['grievances'] })
     },
   })
 }
@@ -72,6 +76,10 @@ export function useUpdateGrievanceStatus() {
       queryClient.invalidateQueries({ queryKey: ['grievanceCount'] })
       queryClient.invalidateQueries({ queryKey: ['dashboardStats'] })
       queryClient.invalidateQueries({ queryKey: ['grievanceStats'] })
+      queryClient.invalidateQueries({ queryKey: ['adminStats'] })
+      queryClient.invalidateQueries({ queryKey: ['adminAllGrievances'] })
+      queryClient.invalidateQueries({ queryKey: ['departmentGrievances'] })
+      queryClient.invalidateQueries({ queryKey: ['grievances'] })
     },
   })
 }
@@ -85,6 +93,10 @@ export function useDeleteGrievance() {
       queryClient.invalidateQueries({ queryKey: ['grievanceCount'] })
       queryClient.invalidateQueries({ queryKey: ['dashboardStats'] })
       queryClient.invalidateQueries({ queryKey: ['grievanceStats'] })
+      queryClient.invalidateQueries({ queryKey: ['adminStats'] })
+      queryClient.invalidateQueries({ queryKey: ['adminAllGrievances'] })
+      queryClient.invalidateQueries({ queryKey: ['departmentGrievances'] })
+      queryClient.invalidateQueries({ queryKey: ['grievances'] })
     },
   })
 }

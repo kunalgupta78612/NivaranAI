@@ -31,6 +31,8 @@ export function useRegister() {
     mutationFn: registerUser,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['currentCitizen'] })
+      queryClient.invalidateQueries({ queryKey: ['adminCitizens'] })
+      queryClient.invalidateQueries({ queryKey: ['adminStats'] })
     },
   })
 }
@@ -41,6 +43,11 @@ export function useLogin() {
     mutationFn: loginUser,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['currentCitizen'] })
+      queryClient.invalidateQueries({ queryKey: ['adminCitizens'] })
+      queryClient.invalidateQueries({ queryKey: ['adminStats'] })
+      queryClient.invalidateQueries({ queryKey: ['myGrievances'] })
+      queryClient.invalidateQueries({ queryKey: ['grievanceStats'] })
+      queryClient.invalidateQueries({ queryKey: ['grievanceCount'] })
     },
   })
 }
@@ -52,6 +59,7 @@ export function useLogout() {
     onSuccess: () => {
       queryClient.setQueryData(['currentCitizen'], null)
       queryClient.invalidateQueries({ queryKey: ['currentCitizen'] })
+      queryClient.invalidateQueries({ queryKey: ['myGrievances'] })
     },
   })
 }
@@ -62,6 +70,7 @@ export function useUpdateProfile() {
     mutationFn: updateCitizenProfile,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['currentCitizen'] })
+      queryClient.invalidateQueries({ queryKey: ['adminCitizens'] })
     },
   })
 }

@@ -30,6 +30,8 @@ export function useDepartmentRegister() {
     mutationFn: registerDepartment,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['currentDepartment'] })
+      queryClient.invalidateQueries({ queryKey: ['adminDepartments'] })
+      queryClient.invalidateQueries({ queryKey: ['adminStats'] })
     },
   })
 }
@@ -40,6 +42,7 @@ export function useDepartmentLogin() {
     mutationFn: loginDepartment,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['currentDepartment'] })
+      queryClient.invalidateQueries({ queryKey: ['departmentGrievances'] })
     },
   })
 }
@@ -64,8 +67,7 @@ export function useDepartmentGrievances() {
   return useQuery({
     queryKey: ['departmentGrievances'],
     queryFn: getDepartmentGrievances,
-    staleTime: 30 * 1000, // 30 seconds
-    refetchInterval: 60 * 1000, // auto-refetch every 60s
+    staleTime: 0,
     refetchOnWindowFocus: true,
   })
 }
@@ -76,6 +78,12 @@ export function useUpdateGrievanceStatusDept() {
     mutationFn: updateGrievanceStatusDept,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['departmentGrievances'] })
+      queryClient.invalidateQueries({ queryKey: ['myGrievances'] })
+      queryClient.invalidateQueries({ queryKey: ['grievanceCount'] })
+      queryClient.invalidateQueries({ queryKey: ['grievanceStats'] })
+      queryClient.invalidateQueries({ queryKey: ['adminStats'] })
+      queryClient.invalidateQueries({ queryKey: ['adminAllGrievances'] })
+      queryClient.invalidateQueries({ queryKey: ['grievances'] })
     },
   })
 }

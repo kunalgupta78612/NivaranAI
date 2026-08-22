@@ -1,4 +1,4 @@
-﻿import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -194,18 +194,38 @@ export default function CitizenPortal({ defaultTab }) {
 
     if (!fullText.trim() || busy) return
     setBusy(true); setTicket(null); setStages([])
-    const t = await submitGrievance({
-      text: fullText, channel: formMode === 'voice' ? 'voice' : 'web',
-      onStage: (s) => setStages((p) => [...p.filter((x) => x.key !== s.key), s])
-    })
-    const saved = fileGrievance({
-      ...t,
-      photo,
-      category,
-      wardId: selectedWard,
-      landmark: landmark || t.landmark
-    })
-    setTicket(saved); setBusy(false)
+
+    try {
+      const payload = {
+        subject: subject || 'Grievance',
+        text: fullText,
+        category,
+        wardId: selectedWard,
+        landmark,
+        photo,
+        channel: formMode === 'voice' ? 'voice' : 'web'
+      }
+      const created = await submitGrievanceMutation.mutateAsync(payload)
+      const resGrievance = created?.grievance || created
+      setTicket(resGrievance)
+      fileGrievance(resGrievance)
+    } catch (err) {
+      console.error('API submission fallback:', err)
+      const t = await submitGrievance({
+        text: fullText, channel: formMode === 'voice' ? 'voice' : 'web',
+        onStage: (s) => setStages((p) => [...p.filter((x) => x.key !== s.key), s])
+      })
+      const saved = fileGrievance({
+        ...t,
+        photo,
+        category,
+        wardId: selectedWard,
+        landmark: landmark || t.landmark
+      })
+      setTicket(saved)
+    } finally {
+      setBusy(false)
+    }
   }
 
   async function handleReopen(id) {
@@ -809,17 +829,35 @@ export default function CitizenPortal({ defaultTab }) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {filteredMine.map((g) => {
                   const awaiting = g.status === 'closed_unverified'
-                  const out = outcome[g.id]
+                  const out = outcome[g.id || g.ticketId || g._id]
+                  const targetId = g._id || g.id || g.ticketId
                   return (
-                    <div key={g.id} className="p-6 rounded-3xl panel shadow-3d-card space-y-4 flex flex-col justify-between hover-3d">
+                    <div key={targetId} className="p-6 rounded-3xl panel shadow-3d-card space-y-4 flex flex-col justify-between hover-3d">
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <span className="font-mono text-xs font-bold text-indigo-600 px-2 py-0.5 rounded-lg bg-indigo-50 border border-indigo-100">{g.id}</span>
-                          <PriorityBadge p={g.priority} />
+                          <span className="font-mono text-xs font-bold text-indigo-600 px-2 py-0.5 rounded-lg bg-indigo-50 border border-indigo-100">{g.ticketId || g.id || g._id}</span>
+                          <div className="flex items-center gap-2">
+                            <PriorityBadge p={g.priority} />
+                            <button
+                              onClick={async () => {
+                                try {
+                                  await deleteGrievanceMutation.mutateAsync(targetId)
+                                  notify('Grievance deleted successfully', 'ok')
+                                } catch (err) {
+                                  console.error('Failed to delete grievance:', err)
+                                  notify(err.message || 'Failed to delete grievance', 'bad')
+                                }
+                              }}
+                              title="Delete Grievance"
+                              className="p-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 text-xs font-extrabold transition-all"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
                         </div>
                         <p className="text-xs font-bold text-slate-800 leading-relaxed line-clamp-3">{g.text}</p>
                         <div className="text-[10px] font-semibold text-slate-400 flex items-center gap-2">
-                          <span>{g.wardName}</span> Ã¢â‚¬Â¢ <span>{g.categoryLabel}</span> Ã¢â‚¬Â¢ <span>{timeAgo(g.createdAt)}</span>
+                          <span>{g.wardName || 'Indore'}</span> • <span>{g.categoryLabel || g.category}</span> • <span>{timeAgo(g.createdAt)}</span>
                         </div>
                       </div>
 
@@ -827,10 +865,10 @@ export default function CitizenPortal({ defaultTab }) {
                         <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 space-y-3">
                           <p className="text-xs font-extrabold text-amber-800">Officer claimed "Resolved". Confirm fix?</p>
                           <div className="grid grid-cols-2 gap-2">
-                            <button onClick={() => handleReopen(g.id)} className="btn-danger py-2 text-xs">
+                            <button onClick={() => handleReopen(targetId)} className="btn-danger py-2 text-xs">
                               Re-open (Trap)
                             </button>
-                            <button onClick={() => handleConfirm(g.id || g._id)} className="btn-emerald py-2 text-xs">
+                            <button onClick={() => handleConfirm(targetId)} className="btn-emerald py-2 text-xs">
                               Confirm Fix
                             </button>
                           </div>
