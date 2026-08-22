@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Building2, Users, FileText, CheckCircle2, XCircle, LogOut, ShieldCheck,
-  Search, Filter, Clock, MapPin, Tag, RefreshCw, AlertCircle
+  Search, Filter, Clock, MapPin, Tag, RefreshCw, AlertCircle, Trash2, Loader2
 } from 'lucide-react'
 import {
   useAdminLogout,
@@ -12,7 +12,8 @@ import {
   useAdminCitizens,
   useAdminAllGrievances,
   useApproveDepartment,
-  useRejectDepartment
+  useRejectDepartment,
+  useAdminDeleteGrievance
 } from '../../lib/adminAuthApi'
 import { StatTile, PriorityBadge } from '../../components/ui'
 import { timeAgo } from '../../lib/utils'
@@ -33,6 +34,35 @@ export default function GodMode() {
 
   const approveDeptMutation = useApproveDepartment()
   const rejectDeptMutation = useRejectDepartment()
+  const deleteGrievanceMutation = useAdminDeleteGrievance()
+
+  const [deleteTarget, setDeleteTarget] = useState(null)
+  const [deleteError, setDeleteError] = useState(null)
+  const [deleteSuccess, setDeleteSuccess] = useState(null)
+
+  const openDeleteModal = (g) => {
+    setDeleteTarget(g)
+    setDeleteError(null)
+    setDeleteSuccess(null)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return
+    setDeleteError(null)
+    setDeleteSuccess(null)
+    try {
+      const targetId = deleteTarget._id || deleteTarget.id || deleteTarget.ticketId
+      await deleteGrievanceMutation.mutateAsync(targetId)
+      setDeleteSuccess(`Grievance '${deleteTarget.ticketId || deleteTarget._id}' deleted successfully from MongoDB!`)
+      setTimeout(() => {
+        setDeleteTarget(null)
+        setDeleteSuccess(null)
+      }, 1400)
+    } catch (err) {
+      console.error('Admin Delete Grievance Error:', err)
+      setDeleteError(err?.response?.data?.message || err.message || 'An error occurred while deleting grievance')
+    }
+  }
 
   const departmentList = deptRes?.departments || []
   const citizenList = citizenRes?.citizens || []
@@ -270,7 +300,16 @@ export default function GodMode() {
                   <div key={g._id} className="p-4 rounded-2xl bg-white border border-slate-200/80 space-y-1.5 shadow-glass-xs">
                     <div className="flex items-center justify-between">
                       <span className="font-mono text-[10px] font-bold text-indigo-600 px-2 py-0.5 rounded-md bg-indigo-50">{g.ticketId || g._id}</span>
-                      <PriorityBadge p={g.priority} />
+                      <div className="flex items-center gap-2">
+                        <PriorityBadge p={g.priority} />
+                        <button
+                          onClick={() => openDeleteModal(g)}
+                          title="Delete Grievance"
+                          className="p-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 text-xs font-extrabold transition-all"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
                     </div>
                     <p className="text-xs font-bold text-slate-800 line-clamp-2">{g.text}</p>
                     <div className="text-[10px] text-slate-400 font-semibold flex items-center gap-2">
@@ -439,6 +478,7 @@ export default function GodMode() {
                     <th className="py-3 px-3">Location</th>
                     <th className="py-3 px-3">Status</th>
                     <th className="py-3 px-3">Created Date</th>
+                    <th className="py-3 px-3">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -463,6 +503,17 @@ export default function GodMode() {
                         </span>
                       </td>
                       <td className="py-3.5 px-3 text-slate-400">{new Date(g.createdAt).toLocaleDateString()}</td>
+                      <td className="py-3.5 px-3">
+                        <button
+                          onClick={() => openDeleteModal(g)}
+                          disabled={deleteGrievanceMutation.isPending}
+                          title="Delete Grievance permanently"
+                          className="px-2.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 text-[11px] font-extrabold flex items-center gap-1 transition-all disabled:opacity-50"
+                        >
+                          <Trash2 size={13} />
+                          <span>Delete</span>
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -471,6 +522,80 @@ export default function GodMode() {
           )}
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {deleteTarget && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-md p-6 rounded-3xl bg-white shadow-2xl space-y-4 border border-slate-100"
+            >
+              <div className="flex items-center gap-3 text-rose-600">
+                <div className="p-3 rounded-2xl bg-rose-50 border border-rose-100">
+                  <Trash2 size={24} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-900">Delete Grievance Permanently?</h3>
+                  <p className="text-xs font-semibold text-slate-400">This action will delete the ticket from MongoDB.</p>
+                </div>
+              </div>
+
+              {deleteError && (
+                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs font-bold text-rose-700">
+                  {deleteError}
+                </div>
+              )}
+
+              {deleteSuccess && (
+                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-bold text-emerald-700 flex items-center gap-2">
+                  <CheckCircle2 size={16} /> {deleteSuccess}
+                </div>
+              )}
+
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/60 space-y-1">
+                <div className="text-[10px] font-extrabold uppercase text-slate-400">Ticket ID</div>
+                <div className="font-mono text-xs font-black text-indigo-600">{deleteTarget.ticketId || deleteTarget._id}</div>
+                <div className="text-xs font-bold text-slate-800 line-clamp-2 mt-1">{deleteTarget.text}</div>
+                <div className="text-[10px] text-slate-400 font-semibold mt-1">
+                  Citizen: {deleteTarget.citizen?.fullName || 'Citizen'} • Dept: {deleteTarget.dept}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setDeleteTarget(null)}
+                  disabled={deleteGrievanceMutation.isPending}
+                  className="btn-ghost flex-1 py-2.5 text-xs font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmDelete}
+                  disabled={deleteGrievanceMutation.isPending}
+                  className="flex-1 py-2.5 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-black flex items-center justify-center gap-2 shadow-lg shadow-rose-600/20 disabled:opacity-50 transition-all"
+                >
+                  {deleteGrievanceMutation.isPending ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      <span>Deleting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 size={14} />
+                      <span>Delete Grievance</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

@@ -9,6 +9,7 @@ import {
   getAdminAllGrievances,
   approveDepartment,
   rejectDepartment,
+  deleteAdminGrievance,
 } from '../api/index'
 
 export {
@@ -21,6 +22,7 @@ export {
   getAdminAllGrievances,
   approveDepartment,
   rejectDepartment,
+  deleteAdminGrievance,
 }
 
 // ========================
@@ -118,6 +120,25 @@ export function useRejectDepartment() {
       queryClient.invalidateQueries({ queryKey: ['adminDepartments'] })
       queryClient.invalidateQueries({ queryKey: ['adminStats'] })
       queryClient.invalidateQueries({ queryKey: ['currentDepartment'] })
+    },
+  })
+}
+
+export function useAdminDeleteGrievance() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id) => deleteAdminGrievance(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminAllGrievances'] })
+      queryClient.invalidateQueries({ queryKey: ['adminGrievances'] })
+      queryClient.invalidateQueries({ queryKey: ['adminStats'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboardStats'] })
+      queryClient.invalidateQueries({ queryKey: ['grievanceCount'] })
+      queryClient.invalidateQueries({ queryKey: ['myGrievances'] })
+      queryClient.invalidateQueries({ queryKey: ['departmentGrievances'] })
+      queryClient.invalidateQueries({ queryKey: ['grievances'] })
+      queryClient.invalidateQueries({ queryKey: ['grievanceStats'] })
+      queryClient.invalidateQueries({ queryKey: ['grievanceTracking'] })
     },
   })
 }

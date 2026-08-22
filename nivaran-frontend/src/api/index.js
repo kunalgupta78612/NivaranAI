@@ -90,4 +90,5 @@ export {
   getAdminAllGrievances,
   approveDepartment,
   rejectDepartment,
+  deleteAdminGrievance,
 } from './adminApi';

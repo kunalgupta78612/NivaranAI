@@ -1,4 +1,4 @@
-﻿import api from './axios';
+import api from './axios';
 
 export const loginAdmin = async (credentials) => {
   const response = await api.post('/admin/login', credentials);
@@ -42,5 +42,10 @@ export const approveDepartment = async (id) => {
 
 export const rejectDepartment = async (id) => {
   const response = await api.patch(`/admin/departments/${id}/reject`);
+  return response.data;
+};
+
+export const deleteAdminGrievance = async (id) => {
+  const response = await api.delete(`/admin/grievances/${id}`);
   return response.data;
 };

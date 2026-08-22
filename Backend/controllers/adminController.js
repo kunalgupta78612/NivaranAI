@@ -1,4 +1,4 @@
-﻿const jwt = require("jsonwebtoken");
+const jwt = require("jsonwebtoken");
 const Admin = require("../models/Admin");
 const Department = require("../models/Department");
 const Citizen = require("../models/Citizen");
@@ -250,6 +250,34 @@ const rejectDepartment = async (req, res) => {
   }
 };
 
+// ========================
+// @desc    Admin Delete Grievance permanently from MongoDB
+// @route   DELETE /api/admin/grievances/:id
+// @access  Private (Admin)
+// ========================
+const deleteGrievance = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const grievance = await Grievance.findOneAndDelete({
+      $or: [{ _id: id }, { ticketId: id }],
+    });
+
+    if (!grievance) {
+      return errorResponse(res, 404, "Grievance not found");
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Grievance '${grievance.ticketId || id}' deleted successfully from system`,
+      id: grievance._id,
+      ticketId: grievance.ticketId,
+    });
+  } catch (error) {
+    console.error("Admin Delete Grievance Error:", error.message);
+    return errorResponse(res, 500, "An error occurred while deleting grievance");
+  }
+};
+
 module.exports = {
   login,
   logout,
@@ -260,4 +288,5 @@ module.exports = {
   getAllGrievances,
   approveDepartment,
   rejectDepartment,
+  deleteGrievance,
 };

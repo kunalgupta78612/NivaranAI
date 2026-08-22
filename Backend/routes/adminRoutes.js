@@ -1,4 +1,4 @@
-﻿const express = require("express");
+const express = require("express");
 const router = express.Router();
 const {
   login,
@@ -10,6 +10,7 @@ const {
   getAllGrievances,
   approveDepartment,
   rejectDepartment,
+  deleteGrievance,
 } = require("../controllers/adminController");
 const { protectAdmin } = require("../middleware/adminMiddleware");
 
@@ -23,6 +24,7 @@ router.get("/stats", protectAdmin, getAdminStats);
 router.get("/departments", protectAdmin, getDepartments);
 router.get("/citizens", protectAdmin, getCitizens);
 router.get("/grievances", protectAdmin, getAllGrievances);
+router.delete("/grievances/:id", protectAdmin, deleteGrievance);
 
 router.patch("/departments/:id/approve", protectAdmin, approveDepartment);
 router.patch("/departments/:id/reject", protectAdmin, rejectDepartment);
