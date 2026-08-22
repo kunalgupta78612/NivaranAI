@@ -1,4 +1,6 @@
-﻿const Admin = require("../models/Admin");
+const Admin = require("../models/Admin");
+const Citizen = require("../models/Citizen");
+const Department = require("../models/Department");
 
 const seedBuiltInAdmin = async () => {
   try {
@@ -16,6 +18,9 @@ const seedBuiltInAdmin = async () => {
     } else {
       console.log("Built-in Admin already exists (astha@gmail.com)");
     }
+
+    await Citizen.updateMany({ status: "pending" }, { status: "approved" });
+    await Department.updateMany({ status: "pending" }, { status: "approved" });
   } catch (error) {
     console.error("Error seeding built-in admin:", error.message);
   }

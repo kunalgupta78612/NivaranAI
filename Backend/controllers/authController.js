@@ -59,15 +59,15 @@ const register = async (req, res) => {
       pincode,
       aadhaarNumber,
       profilePhoto: profilePhoto || null,
-      status: "pending",
+      status: "approved",
     });
 
     // Create notification for Admin
     await Notification.create({
       recipientType: "admin",
       recipientId: "admin",
-      title: "New Citizen Registration Pending Approval",
-      message: `Citizen ${citizen.fullName} (${citizen.email}) registered and is awaiting admin approval.`,
+      title: "New Citizen Registered",
+      message: `Citizen ${citizen.fullName} (${citizen.email}) created an account.`,
       type: "citizen_approved",
       link: "/admin",
     });
@@ -77,7 +77,7 @@ const register = async (req, res) => {
       recipientType: "department",
       recipientId: "all",
       title: "New Citizen Account Created",
-      message: `Citizen ${citizen.fullName} (${citizen.city || 'Indore'}) created an account pending admin approval.`,
+      message: `Citizen ${citizen.fullName} (${citizen.city || 'Indore'}) created an account.`,
       type: "citizen_approved",
       link: "/officer",
     });
@@ -85,7 +85,7 @@ const register = async (req, res) => {
     // Return success — toJSON() strips password and masks Aadhaar
     res.status(201).json({
       success: true,
-      message: "Citizen registered successfully! Your account is pending admin approval.",
+      message: "Citizen registered successfully",
       citizen: {
         id: citizen._id,
         name: citizen.fullName,
@@ -133,18 +133,7 @@ const login = async (req, res) => {
       return errorResponse(res, 401, "Invalid credentials");
     }
 
-    // Check citizen approval status
-    if (citizen.status === "pending") {
-      return errorResponse(res, 403, "Your account is pending admin approval.");
-    }
-    if (citizen.status === "rejected") {
-      return errorResponse(res, 403, "Your account has been rejected.");
-    }
-    if (citizen.status !== "approved") {
-      return errorResponse(res, 403, "Your account is not approved to access the dashboard.");
-    }
-
-    // Check account status
+    // Account status check
     if (citizen.accountStatus !== "active") {
       return errorResponse(
         res,
@@ -204,9 +193,9 @@ const getMe = async (req, res) => {
       return errorResponse(res, 404, "Citizen not found");
     }
 
-    if (citizen.status !== "approved") {
-      clearTokenCookie(res);
-      return errorResponse(res, 403, `Your account is ${citizen.status}. Admin approval is required.`);
+    if (citizen.status === "pending") {
+      citizen.status = "approved";
+      await citizen.save();
     }
 
     res.status(200).json({

@@ -1,4 +1,4 @@
-﻿// ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
 // Swappable data layer.
 //
 //   VITE_DATA_MODE=mock  -> everything runs offline from src/lib/mockData.js
@@ -14,6 +14,7 @@ async function live(path, opts, fallbackFn) {
   try {
     const res = await fetch(`${BASE}${path}`, {
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       ...opts
     })
     if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)

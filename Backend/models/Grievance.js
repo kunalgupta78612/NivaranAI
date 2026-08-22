@@ -93,6 +93,43 @@ const grievanceSchema = new mongoose.Schema(
       type: Number,
       default: 5,
     },
+    // ---- Added for the Nivaran AI agent ----
+
+    // Citizens who joined an existing ticket instead of filing a duplicate.
+    // Duplicates become a democratic signal rather than noise.
+    supporters: [
+      {
+        citizen: { type: mongoose.Schema.Types.ObjectId, ref: "Citizen" },
+        joinedAt: { type: Date, default: Date.now },
+        via: { type: String, default: "agent" },
+      },
+    ],
+    supportCount: { type: Number, default: 0 },
+
+    // How many times the citizen rejected an officer's "resolved" claim.
+    reopenCount: { type: Number, default: 0 },
+
+    // Escalation ladder: 0 = ground officer, 1 = zonal, 2 = commissioner.
+    escalationLevel: { type: Number, default: 0 },
+
+    // Computed SLA deadline so breach detection is a query, not a guess.
+    slaDueAt: { type: Date, default: null },
+
+    // Filed or modified by the AI agent — each has a ledger block.
+    filedByAgent: { type: Boolean, default: false },
+    auditHash: { type: String, default: null },
+
+    // The plausibility-gate verdict that let this ticket through — a
+    // transparent audit trail of why the agent accepted it as a genuine report.
+    plausibility: {
+      verdict: { type: String, default: null },
+      confidence: { type: Number, default: null },
+      checkedBy: { type: String, default: null },
+    },
+
+    // The 8-stage harm score breakdown, kept so the score stays explainable.
+    harmBreakdown: { type: mongoose.Schema.Types.Mixed, default: null },
+
     statusHistory: [
       {
         status: {

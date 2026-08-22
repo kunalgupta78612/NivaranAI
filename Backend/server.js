@@ -15,6 +15,8 @@ const grievanceRoutes = require("./routes/grievanceRoutes");
 const departmentRoutes = require("./routes/departmentRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
+const chatRoutes = require("./routes/chatRoutes");
+const { chainLog, chainVerify } = require("./controllers/chatController");
 
 const { getGrievanceStats } = require("./controllers/grievanceController");
 const { protect } = require("./middleware/authMiddleware");
@@ -77,6 +79,7 @@ app.use("/api/grievances", grievanceRoutes);
 app.use("/api/department", departmentRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/chat", chatRoutes);
 app.get("/api/citizen/dashboard/stats", protect, getGrievanceStats);
 
 // Support Routes
@@ -107,9 +110,9 @@ app.get("/api/assets", (req, res) => {
   ]);
 });
 
-app.get("/api/chain/log", (req, res) => {
-  res.status(200).json([]);
-});
+// Tamper-evident audit ledger (real SHA-256 hash chain, see services/chain.js)
+app.get("/api/chain/log", chainLog);
+app.get("/api/chain/verify", chainVerify);
 
 app.get("/api/wards/silence", (req, res) => {
   res.status(200).json([]);

@@ -108,7 +108,7 @@ const citizenSchema = new mongoose.Schema(
         values: ["pending", "approved", "rejected"],
         message: "Invalid status",
       },
-      default: "pending",
+      default: "approved",
     },
   },
   {

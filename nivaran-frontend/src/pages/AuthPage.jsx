@@ -157,8 +157,11 @@ export default function AuthPage() {
         // Department Auth Flow
         if (isSignup) {
           await deptRegisterMutation.mutateAsync(deptFormData)
-          setSuccessMsg('Department registration submitted! Your account is pending admin approval before you can sign in.')
-          nav('/login')
+          await deptLoginMutation.mutateAsync({
+            email: deptFormData.email,
+            password: deptFormData.password,
+          })
+          nav('/officer')
         } else {
           await deptLoginMutation.mutateAsync({
             email: deptFormData.email,
@@ -171,10 +174,11 @@ export default function AuthPage() {
         if (isSignup && !validate()) { setLoading(false); return }
         if (isSignup) {
           await registerMutation.mutateAsync(formData)
-          setSuccessMsg('Citizen registration submitted! Your account is pending admin approval before you can log in.')
-          setLoading(false)
-          nav('/login')
-          return
+          await loginMutation.mutateAsync({
+            email: formData.email,
+            password: formData.password,
+          })
+          nav('/citizen')
         } else {
           await loginMutation.mutateAsync({
             email: formData.email,

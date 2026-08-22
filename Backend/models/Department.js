@@ -1,4 +1,4 @@
-﻿const mongoose = require("mongoose");
+const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 
 const departmentSchema = new mongoose.Schema(
@@ -48,7 +48,7 @@ const departmentSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: ["pending", "approved", "rejected"],
-      default: "pending",
+      default: "approved",
     },
   },
   {

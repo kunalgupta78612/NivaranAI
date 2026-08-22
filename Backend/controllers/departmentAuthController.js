@@ -1,4 +1,4 @@
-﻿const { validationResult } = require("express-validator");
+const { validationResult } = require("express-validator");
 const jwt = require("jsonwebtoken");
 const Department = require("../models/Department");
 const errorResponse = require("../utils/errorResponse");
@@ -71,7 +71,7 @@ const register = async (req, res) => {
       department,
       city,
       state,
-      status: "pending",
+      status: "approved",
     });
 
     res.status(201).json({
@@ -118,14 +118,6 @@ const login = async (req, res) => {
     const isPasswordMatch = await dept.comparePassword(password);
     if (!isPasswordMatch) {
       return errorResponse(res, 401, "Invalid credentials");
-    }
-
-    if (dept.status === "pending") {
-      return errorResponse(res, 403, "Your department account is pending admin approval.");
-    }
-
-    if (dept.status === "rejected") {
-      return errorResponse(res, 403, "Your department account has been rejected.");
     }
 
     const token = generateDepartmentToken(dept._id, dept.department);

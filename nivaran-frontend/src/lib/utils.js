@@ -33,7 +33,13 @@ export const STATUS_BG = {
 }
 
 export function timeAgo(ts) {
-  const s = Math.floor((Date.now() - ts) / 1000)
+  // Accepts a Date, an epoch-ms number, or an ISO string (what the API
+  // actually sends back). A bare subtraction against a string is NaN, which
+  // silently rendered every timestamp in the app as "NaNs ago" — normalise
+  // through Date() so all three input shapes work.
+  const ms = ts instanceof Date ? ts.getTime() : new Date(ts).getTime()
+  if (Number.isNaN(ms)) return ''
+  const s = Math.floor((Date.now() - ms) / 1000)
   if (s < 60) return `${s}s ago`
   const m = Math.floor(s / 60); if (m < 60) return `${m}m ago`
   const h = Math.floor(m / 60); if (h < 24) return `${h}h ago`

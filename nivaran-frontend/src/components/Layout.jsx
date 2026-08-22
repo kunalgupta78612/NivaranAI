@@ -6,6 +6,7 @@ import { ROLES, roleOfPath } from '../roles'
 import { useStore } from '../store/AppStore'
 import { cx } from '../lib/utils'
 import { useLogout } from '../lib/authApi'
+import NivaranBot from './bot/NivaranBot'
 
 export default function Layout({ children }) {
   const loc = useLocation()
@@ -23,7 +24,12 @@ export default function Layout({ children }) {
   }, [])
 
   if (loc.pathname.startsWith('/citizen') || loc.pathname.startsWith('/officer')) {
-    return <>{children}</>
+    return (
+      <>
+        {children}
+        {loc.pathname.startsWith('/citizen') && <NivaranBot />}
+      </>
+    )
   }
 
   return (

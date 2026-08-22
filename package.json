@@ -1,0 +1,15 @@
+{
+  "name": "nivaran-ai",
+  "version": "1.0.0",
+  "description": "Nivaran AI - Single command runner for Backend and Frontend",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently --kill-others -n \"BACKEND,FRONTEND\" -c \"blue,magenta\" \"npm --prefix Backend run dev\" \"npm --prefix nivaran-frontend run dev\"",
+    "start": "concurrently --kill-others -n \"BACKEND,FRONTEND\" -c \"blue,magenta\" \"npm --prefix Backend start\" \"npm --prefix nivaran-frontend run dev\"",
+    "backend": "npm --prefix Backend start",
+    "frontend": "npm --prefix nivaran-frontend run dev"
+  },
+  "dependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
