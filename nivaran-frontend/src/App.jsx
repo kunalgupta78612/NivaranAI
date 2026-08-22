@@ -3,13 +3,14 @@ import { motion } from 'framer-motion'
 import Layout from './components/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
 import DepartmentProtectedRoute from './components/DepartmentProtectedRoute'
+import AdminProtectedRoute from './components/AdminProtectedRoute'
 import PublicRoute from './components/PublicRoute'
 import { StoreProvider, useStore } from './store/AppStore'
 
 import Landing from './pages/Landing'
 import AuthPage from './pages/AuthPage'
 import CitizenPortal from './pages/citizen/CitizenPortal'
-import CitizenTrack from './pages/citizen/CitizenTrack'
+
 import OfficerBoard from './pages/officer/OfficerBoard'
 import GodMode from './pages/admin/GodMode'
 import SilenceDetector from './pages/admin/SilenceDetector'
@@ -94,21 +95,25 @@ function Shell() {
         }
       />
 
-      {/* Demo Layout Routes for Admin */}
+      {/* Protected Admin Routes */}
       <Route
-        path="/*"
+        path="/admin/*"
         element={
-          <Layout>
-            <Routes>
-              <Route path="/admin" element={<GodMode />} />
-              <Route path="/admin/silence" element={<SilenceDetector />} />
-              <Route path="/admin/assets" element={<AssetIntelligence />} />
-              <Route path="/admin/chain" element={<ChainAudit />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </Layout>
+          <AdminProtectedRoute>
+            <Layout>
+              <Routes>
+                <Route path="/" element={<GodMode />} />
+                <Route path="/silence" element={<SilenceDetector />} />
+                <Route path="/assets" element={<AssetIntelligence />} />
+                <Route path="/chain" element={<ChainAudit />} />
+                <Route path="*" element={<Navigate to="/admin" replace />} />
+              </Routes>
+            </Layout>
+          </AdminProtectedRoute>
         }
       />
+
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
 }
@@ -120,4 +125,3 @@ export default function App() {
     </StoreProvider>
   )
 }
-

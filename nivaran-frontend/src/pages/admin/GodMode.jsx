@@ -1,27 +1,53 @@
-import { useState, useEffect, useMemo } from 'react'
-import { Link } from 'react-router-dom'
+﻿import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Inbox, Flame, AlertTriangle, EyeOff, ShieldAlert, TrendingDown, Radio,
-  Trophy, ArrowRight, Layers, MapPin, Zap, Building2, CheckCircle2, XCircle
+  Building2, Users, FileText, CheckCircle2, XCircle, LogOut, ShieldCheck,
+  Search, Filter, Clock, MapPin, Tag, RefreshCw, AlertCircle
 } from 'lucide-react'
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
-import { useStore } from '../../store/AppStore'
-import { silenceModel, TREND, WARDS, CATEGORIES } from '../../lib/mockData'
-import { IncidentMap, WardMap } from '../../components/MapView'
-import { StatTile, PriorityBadge, Select, Bar, Empty } from '../../components/ui'
-import { cx, timeAgo, PRIORITY_COLOR } from '../../lib/utils'
-import { useAdminDepartments, useApproveDepartment, useRejectDepartment } from '../../lib/adminAuthApi'
+import {
+  useAdminLogout,
+  useAdminStats,
+  useAdminDepartments,
+  useAdminCitizens,
+  useAdminAllGrievances,
+  useApproveDepartment,
+  useRejectDepartment
+} from '../../lib/adminAuthApi'
+import { StatTile, PriorityBadge } from '../../components/ui'
+import { timeAgo } from '../../lib/utils'
 
 export default function GodMode() {
-  const { grievances, officers, stats } = useStore()
+  const navigate = useNavigate()
+  const logoutMutation = useAdminLogout()
+
+  const [activeTab, setActiveTab] = useState('overview') // 'overview' | 'departments' | 'citizens' | 'grievances'
+  const [searchQuery, setSearchQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
+
+  // TanStack Query Admin Hooks
+  const { data: statsRes, isLoading: statsLoading } = useAdminStats()
   const { data: deptRes, isLoading: deptLoading } = useAdminDepartments()
+  const { data: citizenRes, isLoading: citizenLoading } = useAdminCitizens()
+  const { data: grievanceRes, isLoading: grievanceLoading } = useAdminAllGrievances()
+
   const approveDeptMutation = useApproveDepartment()
   const rejectDeptMutation = useRejectDepartment()
 
+  const stats = statsRes?.stats || { totalDepartments: 0, totalCitizens: 0, totalGrievances: 0 }
   const departmentList = deptRes?.departments || []
+  const citizenList = citizenRes?.citizens || []
+  const grievanceList = grievanceRes?.grievances || []
 
-  async function handleApproveDept(id) {
+  const handleLogout = () => {
+    logoutMutation.mutate(null, {
+      onSettled: () => {
+        navigate('/login')
+      }
+    })
+  }
+
+  const handleApprove = async (id) => {
     try {
       await approveDeptMutation.mutateAsync(id)
     } catch (err) {
@@ -29,357 +55,418 @@ export default function GodMode() {
     }
   }
 
-  async function handleRejectDept(id) {
+  const handleReject = async (id) => {
     try {
       await rejectDeptMutation.mutateAsync(id)
     } catch (err) {
       console.error('Failed to reject department:', err)
     }
   }
-  const [blindSpots, setBlindSpots] = useState(false)
-  const [f, setF] = useState({ ward: 'all', category: 'all', priority: 'all' })
-  const [feed, setFeed] = useState([])
 
-  const wards = useMemo(() => silenceModel(), [])
+  // Filtered lists for tables
+  const filteredDepartments = departmentList.filter((d) =>
+    (statusFilter === 'all' || d.status === statusFilter) &&
+    (searchQuery === '' ||
+      d.department.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      d.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      d.city.toLowerCase().includes(searchQuery.toLowerCase()))
+  )
 
-  const filtered = useMemo(() => grievances.filter((g) =>
-    (f.ward === 'all' || g.wardId === f.ward) &&
-    (f.category === 'all' || g.category === f.category) &&
-    (f.priority === 'all' || g.priority === f.priority)
-  ), [grievances, f])
+  const filteredCitizens = citizenList.filter((c) =>
+    searchQuery === '' ||
+    c.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    c.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    c.mobile.includes(searchQuery) ||
+    c.city.toLowerCase().includes(searchQuery.toLowerCase())
+  )
 
-  useEffect(() => {
-    if (!grievances.length) return
-    setFeed(grievances.slice(0, 8))
-    const t = setInterval(() => {
-      const g = grievances[Math.floor(Math.random() * Math.min(60, grievances.length))]
-      setFeed((p) => [{ ...g, _k: Math.random(), createdAt: Date.now() }, ...p].slice(0, 10))
-    }, 4500)
-    return () => clearInterval(t)
-  }, [grievances])
-
-  const leaderboard = useMemo(() =>
-    [...officers].sort((a, b) => a.integrityScore - b.integrityScore), [officers])
+  const filteredGrievances = grievanceList.filter((g) =>
+    (statusFilter === 'all' || g.status === statusFilter) &&
+    (searchQuery === '' ||
+      (g.ticketId || g._id || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (g.text || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (g.categoryLabel || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (g.wardName || '').toLowerCase().includes(searchQuery.toLowerCase()))
+  )
 
   return (
     <div className="space-y-6 animate-slideUp">
-      {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
-        <StatTile icon={Inbox} label="Open" value={stats.open} sub={`${stats.total} ingested`} />
-        <StatTile icon={Flame} label="Critical" value={stats.critical} tone="rose" sub="harm ≥ 78" />
-        <StatTile icon={AlertTriangle} label="Escalated" value={stats.escalated} tone="amber" sub="SLA breached" />
-        <StatTile icon={EyeOff} label="Ghost Closures" value={stats.ghostCaught} tone="violet" sub="citizen rejected" />
-        <StatTile icon={Radio} label="Blind Spots" value={stats.blindSpots} tone="rose" sub="wards unheard" />
-        <StatTile icon={ShieldAlert} label="Flagged Officers" value={stats.flagged} tone="rose" sub="integrity at risk" />
-      </div>
-
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_380px] gap-6">
-        {/* Map */}
-        <div className="panel overflow-hidden flex flex-col shadow-3d-float">
-          <div className="panel-hd flex-wrap gap-3 relative z-[2]">
-            <div className="flex items-center gap-3">
-              <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
-                {blindSpots ? 'Silence Detector' : 'Incident Cluster Map'}
-                <Zap size={15} className="text-indigo-500" />
-                <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full"
-                      style={{ background: 'rgba(99,102,241,0.06)', color: '#4F46E5' }}>
-                  {blindSpots ? `${wards.length} Wards` : `${filtered.length} Live`}
-                </span>
-              </h3>
-            </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              {!blindSpots && (
-                <>
-                  <Select value={f.ward} onChange={(v) => setF({ ...f, ward: v })}
-                    options={[{ value: 'all', label: 'All Wards' }, ...WARDS.map((w) => ({ value: w.id, label: w.name }))]} />
-                  <Select value={f.category} onChange={(v) => setF({ ...f, category: v })}
-                    options={[{ value: 'all', label: 'All Categories' }, ...CATEGORIES.map((c) => ({ value: c.key, label: c.label }))]} />
-                </>
-              )}
-              <button onClick={() => setBlindSpots((b) => !b)}
-                className={cx('btn text-xs px-3.5 py-1.5 font-extrabold transition-all',
-                  blindSpots
-                    ? 'text-white shadow-3d-btn'
-                    : 'text-slate-600')}
-                style={blindSpots
-                  ? { background: 'linear-gradient(135deg, #F43F5E, #E11D48)', boxShadow: '0 4px 14px -2px rgba(244,63,94,0.4)' }
-                  : { background: 'rgba(255,255,255,0.5)', border: '1px solid rgba(148,163,184,0.2)' }}>
-                <EyeOff size={14} /> Blind Spots
-              </button>
-            </div>
+      {/* Header Bar */}
+      <div className="panel p-6 rounded-3xl shadow-3d-card flex flex-col md:flex-row md:items-center justify-between gap-4"
+           style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.7) 0%, rgba(99,102,241,0.05) 100%)' }}>
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-2xl bg-indigo-600 grid place-items-center text-white shadow-lg">
+            <ShieldCheck size={26} />
           </div>
-
-          <div className="relative">
-            <AnimatePresence mode="wait">
-              {blindSpots ? (
-                <motion.div key="wards" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                  <WardMap wards={wards} className="h-[460px] w-full" />
-                </motion.div>
-              ) : (
-                <motion.div key="inc" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                  <IncidentMap points={filtered} className="h-[460px] w-full" />
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            <div className="absolute bottom-4 left-4 p-4 rounded-2xl max-w-[300px] relative z-[2]"
-                 style={{
-                   background: 'rgba(255,255,255,0.8)',
-                   backdropFilter: 'blur(16px) saturate(180%)',
-                   border: '1px solid rgba(255,255,255,0.8)',
-                   boxShadow: '0 8px 24px -6px rgba(99,102,241,0.12)'
-                 }}>
-              {blindSpots ? (
-                <>
-                  <div className="label mb-1 text-rose-600 font-extrabold">Reporting Gap Anomaly</div>
-                  <p className="text-[11px] text-slate-600 font-semibold leading-relaxed">
-                    Red = Wards filing far <span className="text-slate-900 font-bold">fewer</span> complaints than AI predicts. Silence = structural exclusion.
-                  </p>
-                </>
-              ) : (
-                <>
-                  <div className="label mb-1 font-extrabold text-slate-700">Cluster Severity</div>
-                  <div className="flex items-center gap-3">
-                    {['low', 'medium', 'high', 'critical'].map((p) => (
-                      <span key={p} className="flex items-center gap-1 text-[11px] font-bold text-slate-600">
-                        <span className="w-3 h-3 rounded-full shadow-sm" style={{ background: PRIORITY_COLOR[p] }} />{p}
-                      </span>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-
-          {blindSpots && (
-            <div className="p-5 relative z-[2]" style={{ borderTop: '1px solid rgba(148,163,184,0.12)', background: 'rgba(255,255,255,0.3)' }}>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {wards.filter((w) => w.status === 'blind_spot').slice(0, 4).map((w) => (
-                  <div key={w.id} className="rounded-2xl p-3 hover-3d"
-                       style={{ background: 'rgba(244,63,94,0.04)', border: '1px solid rgba(244,63,94,0.12)' }}>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-extrabold text-slate-800 truncate">{w.name}</span>
-                      <span className="chip text-white font-extrabold" style={{ background: 'linear-gradient(135deg, #F43F5E, #E11D48)', border: 'none' }}>{w.gapPct}%</span>
-                    </div>
-                    <div className="text-[11px] font-bold text-slate-500">
-                      expected {w.expected} · filed <span className="text-rose-600 font-extrabold">{w.actual}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <Link to="/admin/silence" className="flex items-center gap-2 text-xs font-extrabold mt-4 hover:gap-3 transition-all" style={{ color: '#4F46E5' }}>
-                Full Equity Analysis <ArrowRight size={14} />
-              </Link>
-            </div>
-          )}
-
-          {!blindSpots && (
-            <div className="p-5 relative z-[2]" style={{ borderTop: '1px solid rgba(148,163,184,0.12)', background: 'rgba(255,255,255,0.25)' }}>
-              <ResponsiveContainer width="100%" height={110}>
-                <LineChart data={TREND}>
-                  <CartesianGrid stroke="rgba(148,163,184,0.15)" vertical={false} />
-                  <XAxis dataKey="day" stroke="#94A3B8" fontSize={11} tickLine={false} axisLine={false} />
-                  <YAxis stroke="#94A3B8" fontSize={11} tickLine={false} axisLine={false} width={26} />
-                  <Tooltip contentStyle={{ background: 'rgba(255,255,255,0.9)', border: '1px solid rgba(148,163,184,0.2)', borderRadius: 14, fontSize: 12, boxShadow: '0 8px 24px -6px rgba(99,102,241,0.12)', backdropFilter: 'blur(12px)' }} />
-                  <Line type="monotone" dataKey="filed" stroke="#6366F1" strokeWidth={2.5} dot={false} name="Filed" />
-                  <Line type="monotone" dataKey="resolved" stroke="#10B981" strokeWidth={2.5} dot={false} name="Resolved" />
-                  <Line type="monotone" dataKey="ghostCaught" stroke="#F43F5E" strokeWidth={2.5} dot={false} name="Ghost Caught" />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </div>
-
-        {/* Live feed */}
-        <div className="panel flex flex-col overflow-hidden max-h-[680px] shadow-3d-card">
-          <div className="panel-hd relative z-[2]">
-            <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: '#F43F5E', boxShadow: '0 0 8px rgba(244,63,94,0.4)' }} /> Live Telemetry
-            </h3>
-            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full" style={{ background: 'rgba(99,102,241,0.06)', color: '#4F46E5' }}>socket.io</span>
-          </div>
-          <div className="overflow-y-auto divide-y relative z-[2]" style={{ borderColor: 'rgba(148,163,184,0.08)' }}>
-            {feed.length === 0 && <Empty>Waiting…</Empty>}
-            <AnimatePresence initial={false}>
-              {feed.map((g, i) => (
-                <motion.div key={`${g.id}-${g._k ?? i}`} layout
-                  initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
-                  className="p-4 hover:bg-white/40 transition-colors">
-                  <div className="flex items-center justify-between gap-2 mb-1.5">
-                    <span className="font-mono text-[11px] font-bold text-slate-400 px-2 py-0.5 rounded-lg"
-                          style={{ background: 'rgba(99,102,241,0.04)' }}>{g.id}</span>
-                    <PriorityBadge p={g.priority} />
-                  </div>
-                  <p className="text-xs font-semibold text-slate-600 line-clamp-2 leading-relaxed">{g.text}</p>
-                  <div className="flex items-center gap-2 mt-2 text-[11px] font-bold text-slate-400">
-                    <span className="flex items-center gap-1"><MapPin size={11} className="text-indigo-500" />{g.wardName}</span>
-                    <span>·</span><span>{timeAgo(g.createdAt)}</span>
-                  </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
-        </div>
-      </div>
-
-      {/* ============================================================ */}
-      {/* DEPARTMENT REGISTRATION APPROVALS TABLE                      */}
-      {/* ============================================================ */}
-      <div className="panel p-6 rounded-3xl shadow-3d-card space-y-5">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-slate-200/60">
           <div>
-            <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
-              <Building2 className="text-indigo-600" size={22} /> Department Approvals & Profiles
-            </h2>
-            <p className="text-xs text-slate-500 font-semibold mt-1">
-              Review registered municipal departments, verify city authorization, and manage login status in real time.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-amber-50 text-amber-700 border border-amber-200/80">
-              {departmentList.filter(d => d.status === 'pending').length} Pending Approval
-            </span>
-            <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
-              {departmentList.filter(d => d.status === 'approved').length} Approved
-            </span>
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-indigo-50 text-indigo-700 border border-indigo-100 mb-1">
+              System Admin Control Center
+            </div>
+            <h1 className="text-2xl font-black text-slate-900 tracking-tight">Admin Master Dashboard</h1>
           </div>
         </div>
 
-        {deptLoading ? (
-          <div className="p-8 text-center text-xs font-bold text-slate-400">
-            Loading departments from MongoDB...
-          </div>
-        ) : departmentList.length === 0 ? (
-          <div className="p-8 text-center space-y-2">
-            <Building2 className="mx-auto text-slate-300" size={32} />
-            <p className="text-xs font-bold text-slate-500">No departments registered yet in MongoDB.</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs font-semibold">
-              <thead>
-                <tr className="border-b border-slate-200/80 text-slate-400 uppercase tracking-wider text-[10px]">
-                  <th className="py-3 px-3">Department & Name</th>
-                  <th className="py-3 px-3">Email Address</th>
-                  <th className="py-3 px-3">Location</th>
-                  <th className="py-3 px-3">Registration Date</th>
-                  <th className="py-3 px-3">Approval Status</th>
-                  <th className="py-3 px-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {departmentList.map((d) => {
-                  const statusColors = {
-                    pending: 'bg-amber-50 text-amber-700 border-amber-200',
-                    approved: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-                    rejected: 'bg-rose-50 text-rose-700 border-rose-200',
-                  }
-                  return (
-                    <tr key={d._id} className="hover:bg-slate-50/60 transition-colors">
-                      <td className="py-3.5 px-3">
-                        <div className="font-extrabold text-slate-800">{d.department}</div>
-                        <div className="text-[11px] text-slate-400">{d.name}</div>
-                      </td>
-                      <td className="py-3.5 px-3 font-mono text-slate-600">{d.email}</td>
-                      <td className="py-3.5 px-3 text-slate-600">{d.city}, {d.state}</td>
-                      <td className="py-3.5 px-3 text-slate-400">{new Date(d.createdAt).toLocaleDateString()}</td>
-                      <td className="py-3.5 px-3">
-                        <span className={`px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border ${statusColors[d.status] || statusColors.pending}`}>
-                          {d.status}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-3 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          {d.status !== 'approved' && (
-                            <button
-                              onClick={() => handleApproveDept(d._id)}
-                              disabled={approveDeptMutation.isPending}
-                              className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-extrabold transition-all shadow-sm flex items-center gap-1 disabled:opacity-50">
-                              <CheckCircle2 size={13} />
-                              <span>Approve</span>
-                            </button>
-                          )}
-                          {d.status !== 'rejected' && (
-                            <button
-                              onClick={() => handleRejectDept(d._id)}
-                              disabled={rejectDeptMutation.isPending}
-                              className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-extrabold transition-all flex items-center gap-1 disabled:opacity-50">
-                              <XCircle size={13} />
-                              <span>Reject</span>
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleLogout}
+            disabled={logoutMutation.isPending}
+            className="px-4 py-2.5 rounded-2xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200/80 text-xs font-extrabold flex items-center gap-2 transition-all shadow-glass-xs disabled:opacity-50">
+            <LogOut size={15} />
+            <span>Admin Sign Out</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Live Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <StatTile
+          icon={Building2}
+          label="Total Departments"
+          value={statsLoading ? '...' : stats.totalDepartments}
+          tone="indigo"
+          sub={`${departmentList.filter(d => d.status === 'pending').length} pending approval`}
+        />
+        <StatTile
+          icon={Users}
+          label="Total Registered Citizens"
+          value={statsLoading ? '...' : stats.totalCitizens}
+          tone="emerald"
+          sub="Live MongoDB citizen accounts"
+        />
+        <StatTile
+          icon={FileText}
+          label="Total Grievances Ingested"
+          value={statsLoading ? '...' : stats.totalGrievances}
+          tone="rose"
+          sub="Across all citizens & wards"
+        />
+      </div>
+
+      {/* Navigation Tabs & Search Controls */}
+      <div className="panel p-4 rounded-3xl shadow-3d-card flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-1 bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200/60 overflow-x-auto">
+          {[
+            { key: 'overview', label: 'Overview & Stats', icon: ShieldCheck },
+            { key: 'departments', label: `Departments (${departmentList.length})`, icon: Building2 },
+            { key: 'citizens', label: `Citizens (${citizenList.length})`, icon: Users },
+            { key: 'grievances', label: `All Grievances (${grievanceList.length})`, icon: FileText },
+          ].map((t) => (
+            <button
+              key={t.key}
+              onClick={() => setActiveTab(t.key)}
+              className={`px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all whitespace-nowrap ${
+                activeTab === t.key
+                  ? 'bg-white text-indigo-600 shadow-md scale-[1.02]'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}>
+              <t.icon size={14} />
+              <span>{t.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {activeTab !== 'overview' && (
+          <div className="flex items-center gap-3">
+            <div className="relative flex-1 md:w-64">
+              <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={`Search ${activeTab}...`}
+                className="w-full pl-10 pr-4 py-2 text-xs font-bold text-slate-800 placeholder:text-slate-300 rounded-2xl border border-slate-200 bg-white outline-none focus:border-indigo-500"
+              />
+            </div>
+            {activeTab === 'departments' && (
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="px-3 py-2 text-xs font-bold text-slate-700 rounded-2xl border border-slate-200 bg-white outline-none">
+                <option value="all">All Statuses</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+              </select>
+            )}
           </div>
         )}
       </div>
 
-      {/* Leaderboard */}
-      <div className="panel overflow-hidden shadow-3d-float">
-        <div className="panel-hd relative z-[2]">
-          <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
-            <Trophy size={18} className="text-amber-500" /> Officer Integrity Matrix
-          </h3>
-          <span className="text-[10px] font-bold px-2.5 py-1 rounded-full" style={{ background: 'rgba(99,102,241,0.06)', color: '#4F46E5' }}>Immutable Chain Ledger</span>
-        </div>
-        <div className="overflow-x-auto relative z-[2]">
-          <table className="w-full text-xs">
-            <thead>
-              <tr style={{ borderBottom: '1px solid rgba(148,163,184,0.12)', background: 'rgba(255,255,255,0.3)' }}>
-                {['Rank', 'Officer Name', 'Department', 'Ward', 'Assigned', 'Reopened', 'Ghost Rate', 'Integrity'].map((h) => (
-                  <th key={h} className="px-5 py-3.5 font-extrabold uppercase tracking-[0.15em] text-[10px] text-slate-400 whitespace-nowrap text-left">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {leaderboard.map((o, i) => {
-                const bad = o.integrityScore < 55
-                return (
-                  <motion.tr key={o.id} layout className={cx('transition-colors', bad && '')}
-                    style={{ borderBottom: '1px solid rgba(148,163,184,0.06)', background: bad ? 'rgba(244,63,94,0.02)' : 'transparent' }}>
-                    <td className="px-5 py-3 font-mono font-bold text-slate-400">{i + 1}</td>
-                    <td className="px-5 py-3">
-                      <div className={cx('font-extrabold', bad ? 'text-rose-600' : 'text-slate-800')}>{o.name}</div>
-                      <div className="font-mono text-[10px] text-slate-400">{o.id}</div>
-                    </td>
-                    <td className="px-5 py-3 font-semibold text-slate-500 whitespace-nowrap">{o.dept}</td>
-                    <td className="px-5 py-3 font-semibold text-slate-500 whitespace-nowrap">{o.wardName}</td>
-                    <td className="px-5 py-3 font-mono font-bold text-slate-600">{o.assigned}</td>
-                    <td className="px-5 py-3 font-mono font-bold">
-                      <span className={o.reopenedCount > 6 ? 'text-rose-600 font-black' : 'text-slate-500'}>{o.reopenedCount}</span>
-                    </td>
-                    <td className="px-5 py-3 font-mono font-bold">
-                      <span className={o.ghostClosureRate > 0.2 ? 'text-rose-600 font-black' : 'text-slate-500'}>{(o.ghostClosureRate * 100).toFixed(0)}%</span>
-                    </td>
-                    <td className="px-5 py-3 w-48">
-                      <div className="flex items-center gap-3">
-                        <Bar className="flex-1" value={o.integrityScore}
-                             color={o.integrityScore >= 75 ? '#10B981' : o.integrityScore >= 55 ? '#F59E0B' : '#F43F5E'} />
-                        <motion.span key={o.integrityScore} initial={{ scale: 1.4 }} animate={{ scale: 1 }}
-                          className={cx('font-black tabular-nums w-8 text-right',
-                            o.integrityScore >= 75 ? 'text-emerald-600' : o.integrityScore >= 55 ? 'text-amber-600' : 'text-rose-600')}>
-                          {o.integrityScore}
-                        </motion.span>
-                        {bad && <TrendingDown size={14} className="text-rose-500 shrink-0" />}
+      {/* TAB 1: OVERVIEW & QUICK ACTIONS */}
+      {activeTab === 'overview' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Quick Department Approval Queue */}
+          <div className="panel p-6 rounded-3xl shadow-3d-card space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+                <Building2 className="text-amber-500" size={18} /> Pending Department Approvals
+              </h3>
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-amber-50 text-amber-700 border border-amber-200">
+                {departmentList.filter((d) => d.status === 'pending').length} Pending
+              </span>
+            </div>
+
+            {departmentList.filter((d) => d.status === 'pending').length === 0 ? (
+              <div className="p-6 text-center text-xs font-bold text-slate-400">
+                No department registrations currently pending approval.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {departmentList
+                  .filter((d) => d.status === 'pending')
+                  .slice(0, 4)
+                  .map((d) => (
+                    <div key={d._id} className="p-4 rounded-2xl bg-white border border-slate-200/80 flex items-center justify-between gap-3 shadow-glass-xs">
+                      <div>
+                        <div className="text-xs font-black text-slate-800">{d.department}</div>
+                        <div className="text-[11px] text-slate-400 font-semibold">{d.name} • {d.email}</div>
+                        <div className="text-[10px] text-slate-400 font-medium">{d.city}, {d.state}</div>
                       </div>
-                    </td>
-                  </motion.tr>
-                )
-              })}
-            </tbody>
-          </table>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          onClick={() => handleApprove(d._id)}
+                          disabled={approveDeptMutation.isPending}
+                          className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-black flex items-center gap-1 shadow-sm disabled:opacity-50">
+                          <CheckCircle2 size={13} />
+                          <span>Approve</span>
+                        </button>
+                        <button
+                          onClick={() => handleReject(d._id)}
+                          disabled={rejectDeptMutation.isPending}
+                          className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-black flex items-center gap-1 disabled:opacity-50">
+                          <XCircle size={13} />
+                          <span>Reject</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </div>
+
+          {/* Recent Grievances Preview */}
+          <div className="panel p-6 rounded-3xl shadow-3d-card space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+                <FileText className="text-indigo-600" size={18} /> Recent Ingested Grievances
+              </h3>
+              <button onClick={() => setActiveTab('grievances')} className="text-xs font-extrabold text-indigo-600 hover:underline">
+                View All ({grievanceList.length}) →
+              </button>
+            </div>
+
+            {grievanceList.length === 0 ? (
+              <div className="p-6 text-center text-xs font-bold text-slate-400">
+                No grievances registered in MongoDB.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {grievanceList.slice(0, 4).map((g) => (
+                  <div key={g._id} className="p-4 rounded-2xl bg-white border border-slate-200/80 space-y-1.5 shadow-glass-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono text-[10px] font-bold text-indigo-600 px-2 py-0.5 rounded-md bg-indigo-50">{g.ticketId || g._id}</span>
+                      <PriorityBadge p={g.priority} />
+                    </div>
+                    <p className="text-xs font-bold text-slate-800 line-clamp-2">{g.text}</p>
+                    <div className="text-[10px] text-slate-400 font-semibold flex items-center gap-2">
+                      <span>{g.categoryLabel || g.category}</span> • <span>{timeAgo(g.createdAt)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-        <div className="px-5 py-4 text-xs font-bold text-slate-400 flex items-center gap-2 relative z-[2]"
-             style={{ borderTop: '1px solid rgba(148,163,184,0.1)', background: 'rgba(255,255,255,0.2)' }}>
-          <Layers size={14} className="text-violet-500 shrink-0" />
-          Every reopen, escalation, and rejection is anchored on-chain. Audit records are immutable.
+      )}
+
+      {/* TAB 2: DEPARTMENT MANAGEMENT */}
+      {activeTab === 'departments' && (
+        <div className="panel p-6 rounded-3xl shadow-3d-card space-y-5">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-200/60">
+            <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
+              <Building2 className="text-indigo-600" size={22} /> Registered Municipal Departments
+            </h2>
+            <div className="text-xs font-bold text-slate-500">
+              Showing {filteredDepartments.length} of {departmentList.length} departments
+            </div>
+          </div>
+
+          {deptLoading ? (
+            <div className="p-8 text-center text-xs font-bold text-slate-400">Loading departments...</div>
+          ) : filteredDepartments.length === 0 ? (
+            <div className="p-8 text-center text-xs font-bold text-slate-400">No departments match your filter.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs font-semibold">
+                <thead>
+                  <tr className="border-b border-slate-200 text-slate-400 uppercase tracking-wider text-[10px]">
+                    <th className="py-3 px-3">Department & Officer</th>
+                    <th className="py-3 px-3">Email</th>
+                    <th className="py-3 px-3">City & State</th>
+                    <th className="py-3 px-3">Registration Date</th>
+                    <th className="py-3 px-3">Status</th>
+                    <th className="py-3 px-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredDepartments.map((d) => {
+                    const statusColors = {
+                      pending: 'bg-amber-50 text-amber-700 border-amber-200',
+                      approved: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                      rejected: 'bg-rose-50 text-rose-700 border-rose-200',
+                    }
+                    return (
+                      <tr key={d._id} className="hover:bg-slate-50/60 transition-colors">
+                        <td className="py-3.5 px-3">
+                          <div className="font-extrabold text-slate-800">{d.department}</div>
+                          <div className="text-[11px] text-slate-400">{d.name}</div>
+                        </td>
+                        <td className="py-3.5 px-3 font-mono text-slate-600">{d.email}</td>
+                        <td className="py-3.5 px-3 text-slate-600">{d.city}, {d.state}</td>
+                        <td className="py-3.5 px-3 text-slate-400">{new Date(d.createdAt).toLocaleDateString()}</td>
+                        <td className="py-3.5 px-3">
+                          <span className={`px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border ${statusColors[d.status] || statusColors.pending}`}>
+                            {d.status}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-3 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            {d.status !== 'approved' && (
+                              <button
+                                onClick={() => handleApprove(d._id)}
+                                disabled={approveDeptMutation.isPending}
+                                className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-extrabold transition-all shadow-sm flex items-center gap-1 disabled:opacity-50">
+                                <CheckCircle2 size={13} />
+                                <span>Approve</span>
+                              </button>
+                            )}
+                            {d.status !== 'rejected' && (
+                              <button
+                                onClick={() => handleReject(d._id)}
+                                disabled={rejectDeptMutation.isPending}
+                                className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-extrabold transition-all flex items-center gap-1 disabled:opacity-50">
+                                <XCircle size={13} />
+                                <span>Reject</span>
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
-      </div>
+      )}
+
+      {/* TAB 3: CITIZEN MANAGEMENT */}
+      {activeTab === 'citizens' && (
+        <div className="panel p-6 rounded-3xl shadow-3d-card space-y-5">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-200/60">
+            <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
+              <Users className="text-emerald-600" size={22} /> Registered Citizen Directory
+            </h2>
+            <div className="text-xs font-bold text-slate-500">
+              Showing {filteredCitizens.length} of {citizenList.length} citizens
+            </div>
+          </div>
+
+          {citizenLoading ? (
+            <div className="p-8 text-center text-xs font-bold text-slate-400">Loading citizen directory...</div>
+          ) : filteredCitizens.length === 0 ? (
+            <div className="p-8 text-center text-xs font-bold text-slate-400">No citizens match your search query.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs font-semibold">
+                <thead>
+                  <tr className="border-b border-slate-200 text-slate-400 uppercase tracking-wider text-[10px]">
+                    <th className="py-3 px-3">Citizen Name</th>
+                    <th className="py-3 px-3">Email Address</th>
+                    <th className="py-3 px-3">Mobile Number</th>
+                    <th className="py-3 px-3">City & State</th>
+                    <th className="py-3 px-3">Registration Date</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredCitizens.map((c) => (
+                    <tr key={c._id} className="hover:bg-slate-50/60 transition-colors">
+                      <td className="py-3.5 px-3 font-extrabold text-slate-800">{c.fullName}</td>
+                      <td className="py-3.5 px-3 font-mono text-slate-600">{c.email}</td>
+                      <td className="py-3.5 px-3 font-mono text-slate-600">{c.mobile}</td>
+                      <td className="py-3.5 px-3 text-slate-600">{c.city || 'Indore'}, {c.state || 'Madhya Pradesh'}</td>
+                      <td className="py-3.5 px-3 text-slate-400">{new Date(c.createdAt).toLocaleDateString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB 4: ALL GRIEVANCES MANAGEMENT */}
+      {activeTab === 'grievances' && (
+        <div className="panel p-6 rounded-3xl shadow-3d-card space-y-5">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-200/60">
+            <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
+              <FileText className="text-rose-600" size={22} /> Master Grievance Directory
+            </h2>
+            <div className="text-xs font-bold text-slate-500">
+              Showing {filteredGrievances.length} of {grievanceList.length} grievances
+            </div>
+          </div>
+
+          {grievanceLoading ? (
+            <div className="p-8 text-center text-xs font-bold text-slate-400">Loading master grievances...</div>
+          ) : filteredGrievances.length === 0 ? (
+            <div className="p-8 text-center text-xs font-bold text-slate-400">No grievances match your search query.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs font-semibold">
+                <thead>
+                  <tr className="border-b border-slate-200 text-slate-400 uppercase tracking-wider text-[10px]">
+                    <th className="py-3 px-3">Grievance ID</th>
+                    <th className="py-3 px-3">Citizen</th>
+                    <th className="py-3 px-3">Title / Text</th>
+                    <th className="py-3 px-3">Category & Dept</th>
+                    <th className="py-3 px-3">Location</th>
+                    <th className="py-3 px-3">Status</th>
+                    <th className="py-3 px-3">Created Date</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredGrievances.map((g) => (
+                    <tr key={g._id} className="hover:bg-slate-50/60 transition-colors">
+                      <td className="py-3.5 px-3 font-mono font-bold text-indigo-600">{g.ticketId || g._id}</td>
+                      <td className="py-3.5 px-3">
+                        <div className="font-extrabold text-slate-800">{g.citizen?.fullName || 'Citizen'}</div>
+                        <div className="text-[11px] text-slate-400">{g.citizen?.email || ''}</div>
+                      </td>
+                      <td className="py-3.5 px-3 max-w-xs">
+                        <div className="font-bold text-slate-800 line-clamp-2">{g.subject ? `${g.subject}: ${g.text}` : g.text}</div>
+                      </td>
+                      <td className="py-3.5 px-3">
+                        <div className="text-slate-800">{g.categoryLabel || g.category}</div>
+                        <div className="text-[11px] text-slate-400">{g.dept}</div>
+                      </td>
+                      <td className="py-3.5 px-3 text-slate-600">{g.wardName || g.landmark || 'Indore'}</td>
+                      <td className="py-3.5 px-3">
+                        <span className="px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-slate-100 text-slate-700 border border-slate-200">
+                          {g.status}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-3 text-slate-400">{new Date(g.createdAt).toLocaleDateString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

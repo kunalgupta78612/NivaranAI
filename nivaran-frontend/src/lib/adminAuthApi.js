@@ -3,7 +3,10 @@ import {
   loginAdmin,
   logoutAdmin,
   getCurrentAdmin,
+  getAdminDashboardStats,
   getAdminDepartments,
+  getAdminCitizens,
+  getAdminAllGrievances,
   approveDepartment,
   rejectDepartment,
 } from '../api/index'
@@ -12,7 +15,10 @@ export {
   loginAdmin,
   logoutAdmin,
   getCurrentAdmin,
+  getAdminDashboardStats,
   getAdminDepartments,
+  getAdminCitizens,
+  getAdminAllGrievances,
   approveDepartment,
   rejectDepartment,
 }
@@ -37,7 +43,10 @@ export function useAdminLogin() {
     mutationFn: loginAdmin,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['currentAdmin'] })
+      queryClient.invalidateQueries({ queryKey: ['adminStats'] })
       queryClient.invalidateQueries({ queryKey: ['adminDepartments'] })
+      queryClient.invalidateQueries({ queryKey: ['adminCitizens'] })
+      queryClient.invalidateQueries({ queryKey: ['adminAllGrievances'] })
     },
   })
 }
@@ -53,10 +62,37 @@ export function useAdminLogout() {
   })
 }
 
+export function useAdminStats() {
+  return useQuery({
+    queryKey: ['adminStats'],
+    queryFn: getAdminDashboardStats,
+    retry: 1,
+    staleTime: 0,
+  })
+}
+
 export function useAdminDepartments() {
   return useQuery({
     queryKey: ['adminDepartments'],
     queryFn: getAdminDepartments,
+    retry: 1,
+    staleTime: 0,
+  })
+}
+
+export function useAdminCitizens() {
+  return useQuery({
+    queryKey: ['adminCitizens'],
+    queryFn: getAdminCitizens,
+    retry: 1,
+    staleTime: 0,
+  })
+}
+
+export function useAdminAllGrievances() {
+  return useQuery({
+    queryKey: ['adminAllGrievances'],
+    queryFn: getAdminAllGrievances,
     retry: 1,
     staleTime: 0,
   })
@@ -68,6 +104,7 @@ export function useApproveDepartment() {
     mutationFn: (id) => approveDepartment(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminDepartments'] })
+      queryClient.invalidateQueries({ queryKey: ['adminStats'] })
     },
   })
 }
@@ -78,6 +115,7 @@ export function useRejectDepartment() {
     mutationFn: (id) => rejectDepartment(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminDepartments'] })
+      queryClient.invalidateQueries({ queryKey: ['adminStats'] })
     },
   })
 }

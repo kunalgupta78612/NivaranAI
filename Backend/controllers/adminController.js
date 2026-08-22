@@ -1,6 +1,8 @@
 ﻿const jwt = require("jsonwebtoken");
 const Admin = require("../models/Admin");
 const Department = require("../models/Department");
+const Citizen = require("../models/Citizen");
+const Grievance = require("../models/Grievance");
 const errorResponse = require("../utils/errorResponse");
 
 function generateAdminToken(adminId, email) {
@@ -106,6 +108,31 @@ const getMe = async (req, res) => {
 };
 
 // ========================
+// @desc    Get admin dashboard stats (Total Departments, Total Citizens, Total Grievances)
+// @route   GET /api/admin/stats
+// @access  Private (Admin)
+// ========================
+const getAdminStats = async (req, res) => {
+  try {
+    const totalDepartments = await Department.countDocuments();
+    const totalCitizens = await Citizen.countDocuments();
+    const totalGrievances = await Grievance.countDocuments();
+
+    res.status(200).json({
+      success: true,
+      stats: {
+        totalDepartments,
+        totalCitizens,
+        totalGrievances,
+      },
+    });
+  } catch (error) {
+    console.error("Admin Get Stats Error:", error.message);
+    return errorResponse(res, 500, "An error occurred while fetching admin stats");
+  }
+};
+
+// ========================
 // @desc    Get all registered departments
 // @route   GET /api/admin/departments
 // @access  Private (Admin)
@@ -121,6 +148,47 @@ const getDepartments = async (req, res) => {
   } catch (error) {
     console.error("Admin Get Departments Error:", error.message);
     return errorResponse(res, 500, "An error occurred while fetching departments");
+  }
+};
+
+// ========================
+// @desc    Get all registered citizens
+// @route   GET /api/admin/citizens
+// @access  Private (Admin)
+// ========================
+const getCitizens = async (req, res) => {
+  try {
+    const citizens = await Citizen.find().select("-password").sort({ createdAt: -1 });
+    res.status(200).json({
+      success: true,
+      count: citizens.length,
+      citizens,
+    });
+  } catch (error) {
+    console.error("Admin Get Citizens Error:", error.message);
+    return errorResponse(res, 500, "An error occurred while fetching citizens");
+  }
+};
+
+// ========================
+// @desc    Get all grievances across all citizens & departments
+// @route   GET /api/admin/grievances
+// @access  Private (Admin)
+// ========================
+const getAllGrievances = async (req, res) => {
+  try {
+    const grievances = await Grievance.find()
+      .populate("citizen", "fullName email mobile")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: grievances.length,
+      grievances,
+    });
+  } catch (error) {
+    console.error("Admin Get All Grievances Error:", error.message);
+    return errorResponse(res, 500, "An error occurred while fetching all grievances");
   }
 };
 
@@ -186,7 +254,10 @@ module.exports = {
   login,
   logout,
   getMe,
+  getAdminStats,
   getDepartments,
+  getCitizens,
+  getAllGrievances,
   approveDepartment,
   rejectDepartment,
 };

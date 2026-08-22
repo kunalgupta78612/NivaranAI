@@ -311,19 +311,7 @@ export default function AuthPage() {
               ))}
             </div>
 
-            {/* Quick Demo Persona */}
-            <div className="p-3.5 rounded-2xl flex items-center justify-between gap-3"
-                 style={{ background: 'rgba(99, 102, 241, 0.05)', border: '1px solid rgba(99, 102, 241, 0.12)' }}>
-              <div className="min-w-0">
-                <div className="text-[10px] uppercase font-black tracking-wider text-indigo-600">{personas[role].badge}</div>
-                <div className="text-xs font-extrabold text-slate-800 truncate">{personas[role].name}</div>
-                <div className="text-[10px] text-slate-400 font-semibold truncate">{personas[role].detail}</div>
-              </div>
-              <button type="button" onClick={() => quickLogin(role)}
-                className="btn-primary text-xs px-3.5 py-1.5 font-extrabold shrink-0 shadow-sm">
-                1-Click Sign In <ArrowRight size={13} />
-              </button>
-            </div>
+
 
             {/* Registration / Login Form */}
             <form onSubmit={handleSubmit} className="space-y-4">

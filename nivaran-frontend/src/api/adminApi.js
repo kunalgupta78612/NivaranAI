@@ -15,8 +15,23 @@ export const getCurrentAdmin = async () => {
   return response.data;
 };
 
+export const getAdminDashboardStats = async () => {
+  const response = await api.get('/admin/stats');
+  return response.data;
+};
+
 export const getAdminDepartments = async () => {
   const response = await api.get('/admin/departments');
+  return response.data;
+};
+
+export const getAdminCitizens = async () => {
+  const response = await api.get('/admin/citizens');
+  return response.data;
+};
+
+export const getAdminAllGrievances = async () => {
+  const response = await api.get('/admin/grievances');
   return response.data;
 };
 

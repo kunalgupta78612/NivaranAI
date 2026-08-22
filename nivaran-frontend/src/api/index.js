@@ -74,13 +74,15 @@ export const getCitizenDashboardStats = async () => {
 };
 
 
-
 // ----------------- ADMIN -------------------------------------------
 export {
   loginAdmin,
   logoutAdmin,
   getCurrentAdmin,
+  getAdminDashboardStats,
   getAdminDepartments,
+  getAdminCitizens,
+  getAdminAllGrievances,
   approveDepartment,
   rejectDepartment,
 } from './adminApi';
