@@ -351,13 +351,8 @@ export default function CitizenPortal({ defaultTab }) {
                 {citizenName.charAt(0)}
               </div>
               <div className="hidden sm:block text-left">
-<<<<<<< HEAD
                 <div className={cx("font-extrabold text-slate-800", isAasaan ? "text-sm" : "text-xs")}>{citizenName}</div>
                 <div className="text-[10px] text-slate-400 font-bold">Verified Citizen • Ward 12</div>
-=======
-                <div className="text-xs font-extrabold text-slate-800">{citizenName}</div>
-                <div className="text-[10px] text-slate-400 font-bold">Verified Citizen â€¢ Ward 12</div>
->>>>>>> 2a8324546f4f2aeb5a05cc8edd06a6fdafed8f12
               </div>
             </div>
           </div>
@@ -385,13 +380,8 @@ export default function CitizenPortal({ defaultTab }) {
                   <h1 className={cx("font-black text-slate-900 tracking-tight", isAasaan ? "text-3xl" : "text-2xl md:text-3xl")}>
                     Welcome back, <span className="text-gradient">{citizenName}</span>!
                   </h1>
-<<<<<<< HEAD
                   <p className={cx("text-slate-500 font-semibold max-w-xl leading-relaxed", isAasaan ? "text-base" : "text-xs md:text-sm")}>
                     Indore Municipal Corporation • File complaints via form or voice intake, track SLA timers, and verify resolution proof.
-=======
-                  <p className="text-xs md:text-sm text-slate-500 font-semibold max-w-xl leading-relaxed">
-                    Indore Municipal Corporation â€¢ File complaints via form or voice intake, track SLA timers, and verify resolution proof.
->>>>>>> 2a8324546f4f2aeb5a05cc8edd06a6fdafed8f12
                   </p>
                 </div>
 
@@ -518,13 +508,8 @@ export default function CitizenPortal({ defaultTab }) {
                           <span className="font-mono text-[10px] font-extrabold text-indigo-600 px-2 py-0.5 rounded-lg bg-indigo-50 border border-indigo-100">{g.id}</span>
                           <PriorityBadge p={g.priority} />
                         </div>
-<<<<<<< HEAD
                         <p className={cx("font-bold text-slate-800 truncate", isAasaan ? "text-sm" : "text-xs")}>{g.text}</p>
                         <div className="text-[10px] text-slate-400 font-semibold mt-1">{g.wardName} • {g.categoryLabel}</div>
-=======
-                        <p className="text-xs font-bold text-slate-800 truncate">{g.text}</p>
-                        <div className="text-[10px] text-slate-400 font-semibold mt-1">{g.wardName} â€¢ {g.categoryLabel}</div>
->>>>>>> 2a8324546f4f2aeb5a05cc8edd06a6fdafed8f12
                       </div>
                       <button onClick={() => { setSelectedTicket(g); setTab('track') }} className="btn-ghost text-xs px-3 py-1.5 font-extrabold">
                         Track Status
