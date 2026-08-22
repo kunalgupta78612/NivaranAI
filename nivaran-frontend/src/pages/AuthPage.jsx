@@ -1,6 +1,7 @@
 ﻿import { useState } from 'react'
 import { useRegister, useLogin } from '../lib/authApi'
 import { useDepartmentRegister, useDepartmentLogin } from '../lib/departmentAuthApi'
+import { useAdminLogin } from '../lib/adminAuthApi'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -45,6 +46,8 @@ export default function AuthPage() {
   // TanStack Query mutations — Department
   const deptRegisterMutation = useDepartmentRegister()
   const deptLoginMutation = useDepartmentLogin()
+  const adminLoginMutation = useAdminLogin()
+  const [successMsg, setSuccessMsg] = useState(null)
 
   // Department-specific form state
   const [deptFormData, setDeptFormData] = useState({
@@ -63,7 +66,7 @@ export default function AuthPage() {
   const personas = {
     citizen: { name: 'Astha P.', detail: 'Vijay Nagar, Ward 12', route: '/citizen', badge: 'Citizen Persona' },
     officer: { name: 'R. K. Sharma', detail: 'PWD Zone 3 Officer', route: '/officer', badge: 'Department Persona' },
-    admin: { name: 'Indore Municipal Corp.', detail: 'City Commissioner', route: '/admin', badge: 'Commissioner Persona' }
+    admin: { name: 'Astha Admin', detail: 'Built-in System Admin (astha@gmail.com / 12345678)', route: '/admin', badge: 'System Admin Persona' }
   }
 
   function handleChange(field, value) {
@@ -137,26 +140,32 @@ export default function AuthPage() {
   async function handleSubmit(e) {
     e.preventDefault()
     setApiError(null)
+    setSuccessMsg(null)
     setLoading(true)
 
     try {
-      if (role === 'officer') {
-        // Department auth flow
+      if (role === 'admin') {
+        // Built-in Admin Login
+        await adminLoginMutation.mutateAsync({
+          email: formData.email || 'astha@gmail.com',
+          password: formData.password || '12345678',
+        })
+        nav('/admin')
+      } else if (role === 'officer') {
+        // Department Auth Flow
         if (isSignup) {
           await deptRegisterMutation.mutateAsync(deptFormData)
-          await deptLoginMutation.mutateAsync({
-            email: deptFormData.email,
-            password: deptFormData.password,
-          })
+          setSuccessMsg('Department registration submitted! Your account is pending admin approval before you can sign in.')
+          nav('/login')
         } else {
           await deptLoginMutation.mutateAsync({
             email: deptFormData.email,
             password: deptFormData.password,
           })
+          nav('/officer')
         }
-        nav('/officer')
       } else {
-        // Citizen auth flow
+        // Citizen Auth Flow
         if (isSignup && !validate()) { setLoading(false); return }
         if (isSignup) {
           await registerMutation.mutateAsync(formData)
@@ -173,7 +182,8 @@ export default function AuthPage() {
         nav(personas[role].route)
       }
     } catch (err) {
-      setApiError(err.message || "Something went wrong. Please try again.")
+      const msg = err?.response?.data?.message || err.message || "Something went wrong. Please try again."
+      setApiError(msg)
     } finally {
       setLoading(false)
     }
@@ -181,11 +191,13 @@ export default function AuthPage() {
 
   function quickLogin(rKey) {
     setRole(rKey)
-    setLoading(true)
-    setTimeout(() => {
-      setLoading(false)
-      nav(personas[rKey].route)
-    }, 500)
+    if (rKey === 'admin') {
+      setFormData((p) => ({ ...p, email: 'astha@gmail.com', password: '12345678' }))
+    } else if (rKey === 'officer') {
+      setDeptFormData((p) => ({ ...p, email: 'pwd.indore@civic.gov.in', password: '12345678' }))
+    } else {
+      setFormData((p) => ({ ...p, email: 'astha.patel@indorecivic.gov.in', password: '12345678' }))
+    }
   }
 
   const computedAge = calculateAge(formData.dateOfBirth)
@@ -582,6 +594,14 @@ export default function AuthPage() {
                       </button>
                     </div>
                   </div>
+                </div>
+              )}
+
+              {/* Success Feedback Display */}
+              {successMsg && (
+                <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs font-extrabold text-emerald-700 flex items-center gap-2">
+                  <CheckCircle2 size={16} className="shrink-0 text-emerald-600" />
+                  <span>{successMsg}</span>
                 </div>
               )}
 

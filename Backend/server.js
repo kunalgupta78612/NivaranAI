@@ -8,9 +8,13 @@ const cookieParser = require("cookie-parser");
 dotenv.config();
 
 const connectDB = require("./config/db");
+const seedBuiltInAdmin = require("./config/seedAdmin");
+
 const authRoutes = require("./routes/authRoutes");
 const grievanceRoutes = require("./routes/grievanceRoutes");
 const departmentRoutes = require("./routes/departmentRoutes");
+const adminRoutes = require("./routes/adminRoutes");
+
 const { getGrievanceStats } = require("./controllers/grievanceController");
 const { protect } = require("./middleware/authMiddleware");
 
@@ -26,7 +30,6 @@ app.use(
 // Dynamic CORS configuration allowing all localhost and 127.0.0.1 origins in development
 const corsOptions = {
   origin: (origin, callback) => {
-    // Allow requests with no origin (e.g. mobile apps, curl, postman)
     if (!origin) return callback(null, true);
 
     const allowedOrigins = [
@@ -51,7 +54,7 @@ const corsOptions = {
       return callback(null, true);
     }
 
-    return callback(null, true); // Fallback: allow origin in dev
+    return callback(null, true);
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
@@ -71,9 +74,10 @@ if (process.env.NODE_ENV !== "test") {
 app.use("/api/auth", authRoutes);
 app.use("/api/grievances", grievanceRoutes);
 app.use("/api/department", departmentRoutes);
+app.use("/api/admin", adminRoutes);
 app.get("/api/citizen/dashboard/stats", protect, getGrievanceStats);
 
-// App Store Support Routes (to prevent 404s when fetching platform data)
+// Support Routes
 app.get("/api/stats", (req, res) => {
   res.status(200).json({
     success: true,
@@ -163,6 +167,7 @@ const PORT = process.env.PORT || 5000;
 const startServer = async () => {
   try {
     await connectDB();
+    await seedBuiltInAdmin();
 
     app.listen(PORT, () => {
       console.log("CivicFlow Backend Server running on port " + PORT);
@@ -176,4 +181,3 @@ const startServer = async () => {
 };
 
 startServer();
-

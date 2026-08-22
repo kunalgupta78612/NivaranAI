@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+﻿const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 
 const departmentSchema = new mongoose.Schema(
@@ -44,6 +44,11 @@ const departmentSchema = new mongoose.Schema(
       required: [true, "State is required"],
       trim: true,
       maxlength: [100, "State cannot exceed 100 characters"],
+    },
+    status: {
+      type: String,
+      enum: ["pending", "approved", "rejected"],
+      default: "pending",
     },
   },
   {

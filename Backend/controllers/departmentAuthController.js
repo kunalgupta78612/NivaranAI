@@ -1,4 +1,4 @@
-const { validationResult } = require("express-validator");
+﻿const { validationResult } = require("express-validator");
 const jwt = require("jsonwebtoken");
 const Department = require("../models/Department");
 const errorResponse = require("../utils/errorResponse");
@@ -17,7 +17,6 @@ function generateDepartmentToken(departmentId, departmentName) {
 
 /**
  * Set dept_token as an HTTP-only cookie on the response.
- * Uses a DIFFERENT cookie name than citizen auth (which uses `token`).
  */
 function setDeptTokenCookie(res, token) {
   const isProduction = process.env.NODE_ENV === "production";
@@ -26,7 +25,7 @@ function setDeptTokenCookie(res, token) {
     httpOnly: true,
     secure: isProduction,
     sameSite: isProduction ? "strict" : "lax",
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    maxAge: 7 * 24 * 60 * 60 * 1000,
     path: "/",
   });
 }
@@ -60,30 +59,30 @@ const register = async (req, res) => {
 
     const { name, email, password, department, city, state } = req.body;
 
-    // Check if email already exists
-    const existingEmail = await Department.findOne({ email });
+    const existingEmail = await Department.findOne({ email: email.toLowerCase().trim() });
     if (existingEmail) {
       return errorResponse(res, 409, "A department user with this email already exists");
     }
 
-    // Create the department user (password will be hashed by pre-save hook)
     const dept = await Department.create({
       name,
-      email,
+      email: email.toLowerCase().trim(),
       password,
       department,
       city,
       state,
+      status: "pending",
     });
 
     res.status(201).json({
       success: true,
-      message: "Department registered successfully",
+      message: "Department registration submitted! Your account is pending admin approval.",
       department: {
         id: dept._id,
         name: dept.name,
         email: dept.email,
         department: dept.department,
+        status: dept.status,
       },
     });
   } catch (error) {
@@ -111,22 +110,25 @@ const login = async (req, res) => {
 
     const { email, password } = req.body;
 
-    // Find department by email — explicitly select password
-    const dept = await Department.findOne({ email }).select("+password");
+    const dept = await Department.findOne({ email: email.toLowerCase().trim() }).select("+password");
     if (!dept) {
       return errorResponse(res, 401, "Invalid credentials");
     }
 
-    // Compare password
     const isPasswordMatch = await dept.comparePassword(password);
     if (!isPasswordMatch) {
       return errorResponse(res, 401, "Invalid credentials");
     }
 
-    // Generate JWT with department info
-    const token = generateDepartmentToken(dept._id, dept.department);
+    if (dept.status === "pending") {
+      return errorResponse(res, 403, "Your department account is pending admin approval.");
+    }
 
-    // Set JWT in HTTP-only cookie (dept_token)
+    if (dept.status === "rejected") {
+      return errorResponse(res, 403, "Your department account has been rejected.");
+    }
+
+    const token = generateDepartmentToken(dept._id, dept.department);
     setDeptTokenCookie(res, token);
 
     res.status(200).json({
@@ -139,6 +141,7 @@ const login = async (req, res) => {
         department: dept.department,
         city: dept.city,
         state: dept.state,
+        status: dept.status,
       },
     });
   } catch (error) {
@@ -147,25 +150,14 @@ const login = async (req, res) => {
   }
 };
 
-// ========================
-// @desc    Logout department user (clear cookie)
-// @route   POST /api/department/logout
-// @access  Public
-// ========================
 const logout = (req, res) => {
   clearDeptTokenCookie(res);
-
   res.status(200).json({
     success: true,
     message: "Department logged out successfully",
   });
 };
 
-// ========================
-// @desc    Get current authenticated department user
-// @route   GET /api/department/me
-// @access  Private (Department)
-// ========================
 const getMe = async (req, res) => {
   try {
     const dept = await Department.findById(req.department.departmentId);
@@ -184,11 +176,6 @@ const getMe = async (req, res) => {
   }
 };
 
-// ========================
-// @desc    Change department user password
-// @route   PUT /api/department/change-password
-// @access  Private (Department)
-// ========================
 const changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;

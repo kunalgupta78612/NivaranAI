@@ -1,4 +1,4 @@
-import api from './axios'
+﻿import api from './axios'
 
 // ----------------- AUTH --------------------------------------------
 
@@ -73,3 +73,14 @@ export const getCitizenDashboardStats = async () => {
   return response.data;
 };
 
+
+
+// ----------------- ADMIN -------------------------------------------
+export {
+  loginAdmin,
+  logoutAdmin,
+  getCurrentAdmin,
+  getAdminDepartments,
+  approveDepartment,
+  rejectDepartment,
+} from './adminApi';
