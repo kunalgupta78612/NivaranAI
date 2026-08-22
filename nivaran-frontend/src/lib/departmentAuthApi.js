@@ -84,6 +84,7 @@ export function useUpdateGrievanceStatusDept() {
       queryClient.invalidateQueries({ queryKey: ['adminStats'] })
       queryClient.invalidateQueries({ queryKey: ['adminAllGrievances'] })
       queryClient.invalidateQueries({ queryKey: ['grievances'] })
+      queryClient.invalidateQueries({ queryKey: ['grievanceTracking'] })
     },
   })
 }

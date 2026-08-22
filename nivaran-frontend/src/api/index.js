@@ -1,4 +1,4 @@
-﻿import api from './axios'
+import api from './axios'
 
 // ----------------- AUTH --------------------------------------------
 
@@ -47,6 +47,11 @@ export const getMyGrievances = async () => {
 
 export const getGrievanceById = async (id) => {
   const response = await api.get(`/grievances/${id}`);
+  return response.data;
+};
+
+export const getGrievanceTracking = async (id) => {
+  const response = await api.get(`/grievances/${id}/tracking`);
   return response.data;
 };
 

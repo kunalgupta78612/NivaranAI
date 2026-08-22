@@ -93,6 +93,18 @@ const grievanceSchema = new mongoose.Schema(
       type: Number,
       default: 5,
     },
+    statusHistory: [
+      {
+        status: {
+          type: String,
+          required: true,
+        },
+        updatedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
   },
   {
     timestamps: true,

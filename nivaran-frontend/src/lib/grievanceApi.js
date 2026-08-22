@@ -3,6 +3,7 @@ import {
   createGrievance,
   getMyGrievances,
   getGrievanceById,
+  getGrievanceTracking,
   getMyGrievanceCount,
   updateGrievance,
   deleteGrievance,
@@ -13,6 +14,7 @@ export {
   createGrievance,
   getMyGrievances,
   getGrievanceById,
+  getGrievanceTracking,
   getMyGrievanceCount,
   updateGrievance,
   deleteGrievance,
@@ -27,6 +29,16 @@ export function useMyGrievances() {
   return useQuery({
     queryKey: ['myGrievances'],
     queryFn: getMyGrievances,
+    retry: 1,
+    staleTime: 0,
+  })
+}
+
+export function useGrievanceTracking(id) {
+  return useQuery({
+    queryKey: ['grievanceTracking', id],
+    queryFn: () => getGrievanceTracking(id),
+    enabled: Boolean(id),
     retry: 1,
     staleTime: 0,
   })
@@ -63,6 +75,7 @@ export function useSubmitGrievance() {
       queryClient.invalidateQueries({ queryKey: ['adminAllGrievances'] })
       queryClient.invalidateQueries({ queryKey: ['departmentGrievances'] })
       queryClient.invalidateQueries({ queryKey: ['grievances'] })
+      queryClient.invalidateQueries({ queryKey: ['grievanceTracking'] })
     },
   })
 }
@@ -80,6 +93,7 @@ export function useUpdateGrievanceStatus() {
       queryClient.invalidateQueries({ queryKey: ['adminAllGrievances'] })
       queryClient.invalidateQueries({ queryKey: ['departmentGrievances'] })
       queryClient.invalidateQueries({ queryKey: ['grievances'] })
+      queryClient.invalidateQueries({ queryKey: ['grievanceTracking'] })
     },
   })
 }
@@ -97,6 +111,7 @@ export function useDeleteGrievance() {
       queryClient.invalidateQueries({ queryKey: ['adminAllGrievances'] })
       queryClient.invalidateQueries({ queryKey: ['departmentGrievances'] })
       queryClient.invalidateQueries({ queryKey: ['grievances'] })
+      queryClient.invalidateQueries({ queryKey: ['grievanceTracking'] })
     },
   })
 }

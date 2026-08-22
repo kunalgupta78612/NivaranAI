@@ -74,6 +74,13 @@ const updateGrievanceStatus = async (req, res) => {
     }
 
     grievance.status = status;
+    if (!grievance.statusHistory) {
+      grievance.statusHistory = [];
+    }
+    grievance.statusHistory.push({
+      status,
+      updatedAt: new Date(),
+    });
     await grievance.save();
 
     // Re-populate citizen info for the response

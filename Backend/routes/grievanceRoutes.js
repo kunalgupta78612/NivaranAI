@@ -1,4 +1,4 @@
-﻿const express = require("express");
+const express = require("express");
 const router = express.Router();
 
 const {
@@ -10,6 +10,7 @@ const {
   deleteGrievance,
   getGrievanceStats,
   updateGrievanceStatus,
+  getGrievanceTracking,
 } = require("../controllers/grievanceController");
 
 const { protect } = require("../middleware/authMiddleware");
@@ -22,6 +23,7 @@ router.get("/my", protect, getMyGrievances);
 router.get("/my/count", protect, getMyGrievanceCount);
 router.get("/stats", protect, getGrievanceStats);
 router.get("/:id", protect, getGrievanceById);
+router.get("/:id/tracking", protect, getGrievanceTracking);
 router.put("/:id", protect, updateGrievance);
 router.delete("/:id", protect, deleteGrievance);
 router.patch("/:id/status", protect, updateGrievanceStatus);

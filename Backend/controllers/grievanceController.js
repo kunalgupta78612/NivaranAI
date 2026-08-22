@@ -1,4 +1,4 @@
-﻿const Grievance = require("../models/Grievance");
+const Grievance = require("../models/Grievance");
 const errorResponse = require("../utils/errorResponse");
 
 // ========================
@@ -48,6 +48,11 @@ const createGrievance = async (req, res) => {
       priority: priority || "medium",
       harmScore: harmScore || 50,
       status: "assigned",
+      statusHistory: [
+        { status: "Submitted", updatedAt: new Date() },
+        { status: "Pending", updatedAt: new Date() },
+        { status: "Assigned", updatedAt: new Date() },
+      ],
       officerName: officerName || "R. K. Sharma",
       slaDays: slaDays || 5,
     });
@@ -266,6 +271,13 @@ const updateGrievanceStatus = async (req, res) => {
     }
 
     grievance.status = status;
+    if (!grievance.statusHistory) {
+      grievance.statusHistory = [];
+    }
+    grievance.statusHistory.push({
+      status,
+      updatedAt: new Date(),
+    });
     await grievance.save();
 
     res.status(200).json({
@@ -279,6 +291,53 @@ const updateGrievanceStatus = async (req, res) => {
   }
 };
 
+// ========================
+// @desc    Get tracking timeline for a citizen grievance
+// @route   GET /api/grievances/:id/tracking
+// @access  Private (Citizen)
+// ========================
+const getGrievanceTracking = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const grievance = await Grievance.findOne({
+      $or: [{ _id: id }, { ticketId: id }],
+      citizen: req.user.userId,
+    });
+
+    if (!grievance) {
+      return errorResponse(res, 404, "Grievance not found or unauthorized");
+    }
+
+    const defaultHistory = [
+      { status: "Submitted", updatedAt: grievance.createdAt },
+      { status: "Pending", updatedAt: grievance.createdAt },
+      { status: grievance.status, updatedAt: grievance.updatedAt },
+    ];
+
+    const statusHistory =
+      grievance.statusHistory && grievance.statusHistory.length > 0
+        ? grievance.statusHistory
+        : defaultHistory;
+
+    res.status(200).json({
+      success: true,
+      currentStatus: grievance.status,
+      statusHistory,
+      departmentInfo: {
+        dept: grievance.dept,
+        officerName: grievance.officerName,
+        wardId: grievance.wardId,
+        wardName: grievance.wardName,
+        slaDays: grievance.slaDays,
+      },
+      grievance,
+    });
+  } catch (error) {
+    console.error("Get Grievance Tracking Error:", error.message);
+    return errorResponse(res, 500, "An error occurred while fetching tracking data");
+  }
+};
+
 module.exports = {
   createGrievance,
   getMyGrievances,
@@ -288,4 +347,5 @@ module.exports = {
   deleteGrievance,
   getGrievanceStats,
   updateGrievanceStatus,
+  getGrievanceTracking,
 };

@@ -13,7 +13,129 @@ import { useStore } from '../../store/AppStore'
 import { PriorityBadge } from '../../components/ui'
 import { cx, timeAgo } from '../../lib/utils'
 import { useCurrentCitizen, useLogout, useChangePassword } from '../../lib/authApi'
-import { useMyGrievances, useGrievanceStats, useSubmitGrievance, useUpdateGrievanceStatus, useDeleteGrievance } from '../../lib/grievanceApi'
+import { useMyGrievances, useGrievanceStats, useSubmitGrievance, useUpdateGrievanceStatus, useDeleteGrievance, useGrievanceTracking } from '../../lib/grievanceApi'
+
+function GrievanceTrackerTimeline({ grievance }) {
+  const targetId = grievance?._id || grievance?.id || grievance?.ticketId
+  const { data: trackingRes } = useGrievanceTracking(targetId)
+
+  const tracking = trackingRes?.grievance || trackingRes || grievance
+  const status = tracking?.status || grievance?.status || 'pending'
+  const history = tracking?.statusHistory || grievance?.statusHistory || []
+
+  const findTime = (matchList) => {
+    const entry = history.find((h) => matchList.includes(h.status?.toLowerCase()))
+    return entry ? timeAgo(entry.updatedAt) : null
+  }
+
+  const isRejected = status === 'rejected'
+  const isResolved = ['verified_resolved', 'closed_unverified'].includes(status)
+  const isInProgress = ['in_progress', 'closed_unverified', 'verified_resolved', 'reopened', 'escalated'].includes(status)
+  const isPending = ['pending', 'assigned', 'in_progress', 'closed_unverified', 'verified_resolved', 'reopened', 'escalated', 'rejected'].includes(status)
+
+  const steps = [
+    {
+      key: 'submitted',
+      label: 'Submitted',
+      completed: true,
+      current: false,
+      isRejected: false,
+      time: findTime(['submitted']) || timeAgo(grievance?.createdAt)
+    },
+    {
+      key: 'pending',
+      label: 'Pending',
+      completed: isPending,
+      current: status === 'pending' || status === 'assigned',
+      isRejected: false,
+      time: findTime(['pending', 'assigned']) || timeAgo(grievance?.createdAt)
+    },
+    {
+      key: 'in_progress',
+      label: 'In Progress',
+      completed: isInProgress,
+      current: status === 'in_progress',
+      isRejected: false,
+      time: findTime(['in_progress']) || (isInProgress ? 'Active' : null)
+    },
+    ...(isRejected
+      ? [
+          {
+            key: 'rejected',
+            label: 'Rejected',
+            completed: true,
+            current: true,
+            isRejected: true,
+            time: findTime(['rejected']) || 'Just now'
+          }
+        ]
+      : [
+          {
+            key: 'resolved',
+            label: status === 'closed_unverified' ? 'Awaiting Verification' : 'Resolved',
+            completed: isResolved,
+            current: isResolved || status === 'reopened',
+            isRejected: false,
+            time: findTime(['verified_resolved', 'closed_unverified', 'resolved']) || (isResolved ? 'Completed' : null)
+          }
+        ])
+  ]
+
+  return (
+    <div className="p-4 rounded-2xl bg-white/80 border border-slate-200/80 space-y-3 shadow-glass-xs">
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+          <Clock size={13} className="text-indigo-600" /> Grievance Tracking Timeline
+        </span>
+        <span className={cx(
+          "px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border",
+          status === 'rejected' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+          status === 'verified_resolved' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+          status === 'in_progress' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' :
+          'bg-amber-50 text-amber-700 border-amber-200'
+        )}>
+          {status === 'closed_unverified' ? 'Awaiting Verification' : status.replace('_', ' ')}
+        </span>
+      </div>
+
+      <div className="space-y-3 relative pl-6 border-l-2 border-slate-200/80 pt-1">
+        {steps.map((step) => (
+          <div key={step.key} className="relative flex items-center justify-between text-xs font-bold">
+            <div className={cx(
+              "absolute -left-[31px] w-5 h-5 rounded-full border-2 grid place-items-center transition-all",
+              step.isRejected
+                ? "border-rose-500 bg-rose-500 text-white shadow-sm"
+                : step.current
+                ? "border-indigo-600 bg-indigo-600 text-white shadow-md scale-110"
+                : step.completed
+                ? "border-emerald-500 bg-emerald-500 text-white"
+                : "border-slate-300 bg-white text-slate-300"
+            )}>
+              {step.isRejected ? <X size={11} strokeWidth={3} /> : step.completed ? <Check size={11} strokeWidth={3} /> : <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />}
+            </div>
+
+            <span className={cx(
+              step.isRejected ? "text-rose-600 font-black" : step.current ? "text-indigo-600 font-black" : step.completed ? "text-slate-800 font-extrabold" : "text-slate-400"
+            )}>
+              {step.isRejected ? '✕ Rejected' : step.completed ? `✓ ${step.label}` : step.label}
+            </span>
+
+            {step.time && (
+              <span className="text-[10px] text-slate-400 font-semibold">{step.time}</span>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {(grievance?.dept || tracking?.dept) && (
+        <div className="text-[10px] text-slate-500 font-semibold pt-2 border-t border-slate-200/60 flex items-center justify-between">
+          <span>Dept: {tracking?.dept || grievance?.dept}</span>
+          <span>Officer: {tracking?.officerName || grievance?.officerName || 'R. K. Sharma'}</span>
+        </div>
+      )}
+    </div>
+  )
+}
 
 const SAMPLES = [
   'Manhole ka dhakkan gayab hai school ke saamne, raat me bahut khatarnaak hai bacchon ke liye',
@@ -861,6 +983,9 @@ export default function CitizenPortal({ defaultTab }) {
                         </div>
                       </div>
 
+                      {/* Grievance Tracking Timeline Component */}
+                      <GrievanceTrackerTimeline grievance={g} />
+
                       {awaiting && !out && (
                         <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 space-y-3">
                           <p className="text-xs font-extrabold text-amber-800">Officer claimed "Resolved". Confirm fix?</p>
@@ -973,6 +1098,8 @@ export default function CitizenPortal({ defaultTab }) {
                   </div>
 
                   <div className="lg:col-span-5 p-7 rounded-3xl panel shadow-3d-card space-y-6">
+                    <GrievanceTrackerTimeline grievance={activeTrackTarget} />
+
                     <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
                       <ShieldCheck size={16} className="text-indigo-600" /> Resolution Progress Rail
                     </h3>
