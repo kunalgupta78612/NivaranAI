@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+﻿import { useState, useRef, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -11,6 +11,7 @@ import {
 import { submitGrievance, CATEGORIES, WARDS } from '../../lib/api'
 import { useStore } from '../../store/AppStore'
 import { PriorityBadge } from '../../components/ui'
+import { cx, timeAgo } from '../../lib/utils'
 import { useCurrentCitizen, useLogout, useChangePassword } from '../../lib/authApi'
 import { useMyGrievances, useGrievanceStats, useSubmitGrievance, useUpdateGrievanceStatus, useDeleteGrievance } from '../../lib/grievanceApi'
 
@@ -122,11 +123,20 @@ export default function CitizenPortal({ defaultTab }) {
 
   useEffect(() => () => { clearInterval(typer.current); recog.current?.stop?.() }, [])
 
-  // Stats calculation
-  const totalCount = mine.length || 3
-  const inProgressCount = mine.filter((g) => g.status === 'in_progress').length || 1
-  const awaitingCount = mine.filter((g) => g.status === 'closed_unverified').length || 1
-  const resolvedCount = mine.filter((g) => g.status === 'verified_resolved').length || 1
+  // Live MongoDB Grievances & Stats via TanStack Query
+  const { data: myGrievancesRes } = useMyGrievances()
+  const { data: grievanceStatsRes } = useGrievanceStats()
+  const submitGrievanceMutation = useSubmitGrievance()
+  const updateStatusMutation = useUpdateGrievanceStatus()
+  const deleteGrievanceMutation = useDeleteGrievance()
+
+  const mineList = Array.isArray(myGrievancesRes?.grievances) ? myGrievancesRes.grievances : []
+  const liveStats = grievanceStatsRes?.stats
+
+  const totalCount = liveStats?.total ?? mineList.length
+  const inProgressCount = liveStats?.inProgress ?? mineList.filter((g) => g.status === 'in_progress').length
+  const awaitingCount = liveStats?.awaiting ?? mineList.filter((g) => g.status === 'closed_unverified').length
+  const resolvedCount = liveStats?.resolved ?? mineList.filter((g) => g.status === 'verified_resolved').length
 
   function handleSignOut() {
     logoutMutation.mutate(null, {
@@ -198,9 +208,25 @@ export default function CitizenPortal({ defaultTab }) {
     setTicket(saved); setBusy(false)
   }
 
-  function handleReopen(id) {
-    const r = citizenReopen(id)
-    setOutcome((p) => ({ ...p, [id]: r }))
+  async function handleReopen(id) {
+    try {
+      await updateStatusMutation.mutateAsync({ id, status: 'reopened' })
+      setOutcome((p) => ({ ...p, [id]: 'Ticket re-opened with CRITICAL priority and escalated on Polygon.' }))
+      notify('Grievance re-opened and escalated', 'ok')
+    } catch (err) {
+      console.error('Failed to reopen grievance:', err)
+      notify(err.message || 'Failed to reopen grievance', 'bad')
+    }
+  }
+
+  async function handleConfirm(id) {
+    try {
+      await updateStatusMutation.mutateAsync({ id, status: 'verified_resolved' })
+      notify('Grievance resolution confirmed and closed', 'ok')
+    } catch (err) {
+      console.error('Failed to confirm fix:', err)
+      notify(err.message || 'Failed to confirm fix', 'bad')
+    }
   }
 
   function startDeleteFlow() {
@@ -212,14 +238,14 @@ export default function CitizenPortal({ defaultTab }) {
 
   const doneCount = stages.filter((s) => s.state === 'done').length
 
-  const filteredMine = mine.filter((g) =>
+  const filteredMine = mineList.filter((g) =>
     searchQuery === '' ||
-    g.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    g.text.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    g.categoryLabel?.toLowerCase().includes(searchQuery.toLowerCase())
+    (g?.id || g?.ticketId || g?._id || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (g?.text || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (g?.categoryLabel || '').toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  const activeTrackTarget = selectedTicket || mine.find((g) => g.id.toLowerCase() === lookupId.trim().toLowerCase()) || mine[0]
+  const activeTrackTarget = selectedTicket || mineList.find((g) => (g?.id || g?.ticketId || g?._id || '').toLowerCase() === lookupId.trim().toLowerCase()) || mineList[0] || null
 
   return (
     <div className={cx("fixed inset-0 bg-[#FAFAFF] text-slate-900 flex overflow-hidden font-sans selection:bg-indigo-500/20 selection:text-indigo-900 z-50", isAasaan ? "text-base" : "text-xs")}>
@@ -352,7 +378,7 @@ export default function CitizenPortal({ defaultTab }) {
               </div>
               <div className="hidden sm:block text-left">
                 <div className={cx("font-extrabold text-slate-800", isAasaan ? "text-sm" : "text-xs")}>{citizenName}</div>
-                <div className="text-[10px] text-slate-400 font-bold">Verified Citizen • Ward 12</div>
+                <div className="text-[10px] text-slate-400 font-bold">Verified Citizen â€¢ Ward 12</div>
               </div>
             </div>
           </div>
@@ -381,7 +407,7 @@ export default function CitizenPortal({ defaultTab }) {
                     Welcome back, <span className="text-gradient">{citizenName}</span>!
                   </h1>
                   <p className={cx("text-slate-500 font-semibold max-w-xl leading-relaxed", isAasaan ? "text-base" : "text-xs md:text-sm")}>
-                    Indore Municipal Corporation • File complaints via form or voice intake, track SLA timers, and verify resolution proof.
+                    Indore Municipal Corporation â€¢ File complaints via form or voice intake, track SLA timers, and verify resolution proof.
                   </p>
                 </div>
 
@@ -509,7 +535,7 @@ export default function CitizenPortal({ defaultTab }) {
                           <PriorityBadge p={g.priority} />
                         </div>
                         <p className={cx("font-bold text-slate-800 truncate", isAasaan ? "text-sm" : "text-xs")}>{g.text}</p>
-                        <div className="text-[10px] text-slate-400 font-semibold mt-1">{g.wardName} • {g.categoryLabel}</div>
+                        <div className="text-[10px] text-slate-400 font-semibold mt-1">{g.wardName} â€¢ {g.categoryLabel}</div>
                       </div>
                       <button onClick={() => { setSelectedTicket(g); setTab('track') }} className="btn-ghost text-xs px-3 py-1.5 font-extrabold">
                         Track Status
@@ -654,7 +680,7 @@ export default function CitizenPortal({ defaultTab }) {
 
                             <button onClick={fire} disabled={(!subject.trim() && !text.trim()) || busy}
                               className="btn-emerald w-full py-3.5 text-xs font-extrabold shadow-3d-btn flex items-center justify-center gap-2 disabled:opacity-40">
-                              {busy ? <><Loader2 size={16} className="animate-spin" /> Processing AI Pipelineâ€¦</> : <><Send size={16} /> Register Structured Grievance</>}
+                              {busy ? <><Loader2 size={16} className="animate-spin" /> Processing AI PipelineÃ¢â‚¬Â¦</> : <><Send size={16} /> Register Structured Grievance</>}
                             </button>
                           </div>
                         )}
@@ -673,7 +699,7 @@ export default function CitizenPortal({ defaultTab }) {
                                   : <Mic size={42} className="relative text-white group-hover:scale-110 transition-transform" />}
                               </button>
                               <p className="text-xs font-extrabold text-slate-800 mt-4 flex items-center gap-2">
-                                {recording ? <><span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" /> Sun raha hoonâ€¦ Boliye aapki samasya</> : 'Mic par click karein aur boliye'}
+                                {recording ? <><span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" /> Sun raha hoonÃ¢â‚¬Â¦ Boliye aapki samasya</> : 'Mic par click karein aur boliye'}
                               </p>
                               <p className="text-[11px] text-slate-400 font-semibold mt-1">Automatic Hinglish / Hindi / English transcription</p>
                             </div>
@@ -692,7 +718,7 @@ export default function CitizenPortal({ defaultTab }) {
                                 {SAMPLES.map((s, i) => (
                                   <button key={i} onClick={() => setText(s)}
                                     className="text-left text-xs p-3 rounded-2xl font-bold text-slate-700 bg-white/70 border border-slate-200/60 truncate hover:border-indigo-300 transition-all">
-                                    ðŸŽ¤ "{s.slice(0, 35)}â€¦"
+                                    Ã°Å¸Å½Â¤ "{s.slice(0, 35)}Ã¢â‚¬Â¦"
                                   </button>
                                 ))}
                               </div>
@@ -700,7 +726,7 @@ export default function CitizenPortal({ defaultTab }) {
 
                             <button onClick={fire} disabled={!text.trim() || busy}
                               className="btn-emerald w-full py-3.5 text-xs font-extrabold shadow-3d-btn flex items-center justify-center gap-2 disabled:opacity-40">
-                              {busy ? <><Loader2 size={16} className="animate-spin" /> Processing AI Pipelineâ€¦</> : <><Send size={16} /> Submit Voice Grievance</>}
+                              {busy ? <><Loader2 size={16} className="animate-spin" /> Processing AI PipelineÃ¢â‚¬Â¦</> : <><Send size={16} /> Submit Voice Grievance</>}
                             </button>
                           </div>
                         )}
@@ -793,7 +819,7 @@ export default function CitizenPortal({ defaultTab }) {
                         </div>
                         <p className="text-xs font-bold text-slate-800 leading-relaxed line-clamp-3">{g.text}</p>
                         <div className="text-[10px] font-semibold text-slate-400 flex items-center gap-2">
-                          <span>{g.wardName}</span> â€¢ <span>{g.categoryLabel}</span> â€¢ <span>{timeAgo(g.createdAt)}</span>
+                          <span>{g.wardName}</span> Ã¢â‚¬Â¢ <span>{g.categoryLabel}</span> Ã¢â‚¬Â¢ <span>{timeAgo(g.createdAt)}</span>
                         </div>
                       </div>
 
@@ -849,7 +875,7 @@ export default function CitizenPortal({ defaultTab }) {
                     placeholder="Enter Ticket ID (e.g. GRV-100000)"
                     className="flex-1 rounded-2xl bg-white border border-slate-200 px-4 py-2.5 text-xs font-bold text-slate-800 placeholder:text-slate-400 outline-none focus:border-indigo-500 transition-all shadow-glass-xs"
                   />
-                  <button onClick={() => setSelectedTicket(mine.find((g) => g.id.toLowerCase() === lookupId.trim().toLowerCase()) || null)}
+                  <button onClick={() => setSelectedTicket(mineList.find((g) => (g?.id || g?.ticketId || g?._id || '').toLowerCase() === lookupId.trim().toLowerCase()) || null)}
                     className="btn-primary text-xs px-4 py-2.5 font-extrabold shadow-3d-btn">
                     Search Ticket
                   </button>
@@ -1038,7 +1064,7 @@ export default function CitizenPortal({ defaultTab }) {
                     <Volume2 size={24} />
                   </div>
                   <div>
-                    <div className="text-sm font-black uppercase tracking-wider">📢 Aasaan Voice-Guided Mode Active</div>
+                    <div className="text-sm font-black uppercase tracking-wider">ðŸ“¢ Aasaan Voice-Guided Mode Active</div>
                     <div className="text-xs font-semibold opacity-90">Typography scaled up & simplified high-contrast UI enabled for low-digital-access wards.</div>
                   </div>
                 </div>
@@ -1060,7 +1086,7 @@ export default function CitizenPortal({ defaultTab }) {
                   <label className={cx("font-extrabold text-slate-700 mb-3 block", isAasaan ? "text-sm" : "text-xs")}>Language Preference</label>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     {[
-                      { id: 'hindi', label: 'Hindi (हिंदी)', desc: 'Pure Hindi voice & text' },
+                      { id: 'hindi', label: 'Hindi (à¤¹à¤¿à¤‚à¤¦à¥€)', desc: 'Pure Hindi voice & text' },
                       { id: 'hinglish', label: 'Hinglish (Hindi + English)', desc: 'Code-mixed natural audio' },
                       { id: 'english', label: 'English', desc: 'Standard English interface' },
                     ].map((lang) => {
@@ -1114,7 +1140,7 @@ export default function CitizenPortal({ defaultTab }) {
                 <div className="p-4 rounded-2xl bg-indigo-50/60 border border-indigo-100 text-slate-700 text-xs font-semibold flex items-start gap-2.5">
                   <HelpCircle size={16} className="text-indigo-600 shrink-0 mt-0.5" />
                   <span>
-                    <strong>Accessibility Note:</strong> Jo bol kar shikayat karte hain, aksar woh padh bhi nahi sakte — isliye AI jawab sunana zaroori hai.
+                    <strong>Accessibility Note:</strong> Jo bol kar shikayat karte hain, aksar woh padh bhi nahi sakte â€” isliye AI jawab sunana zaroori hai.
                   </span>
                 </div>
               </div>
@@ -1188,7 +1214,7 @@ export default function CitizenPortal({ defaultTab }) {
                     <ShieldAlert size={16} className="text-amber-600" /> Load-Bearing Resolution Verification Note
                   </div>
                   <p className={cx("font-bold text-amber-900/90 leading-relaxed", isAasaan ? "text-xs" : "text-[11px]")}>
-                    Shikayat sulajhne ki pushti (the resolution-verification loop) depends on this being reachable — agar ye reachable nahi hua toh aapka ticket pending ho sakta hai.
+                    Shikayat sulajhne ki pushti (the resolution-verification loop) depends on this being reachable â€” agar ye reachable nahi hua toh aapka ticket pending ho sakta hai.
                   </p>
                 </div>
               </div>
@@ -1336,7 +1362,7 @@ export default function CitizenPortal({ defaultTab }) {
                         type={showPassword ? 'text' : 'password'}
                         value={currentPassword}
                         onChange={(e) => setCurrentPassword(e.target.value)}
-                        placeholder="••••••••"
+                        placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                         className={cx("w-full rounded-2xl bg-white/80 border border-slate-200 pl-10 pr-10 py-2.5 font-bold text-slate-800 outline-none focus:border-indigo-500 transition-all shadow-glass-xs", isAasaan ? "text-sm" : "text-xs")}
                       />
                       <button
@@ -1459,7 +1485,7 @@ export default function CitizenPortal({ defaultTab }) {
                 <div className="py-8 text-center space-y-5">
                   <Loader2 size={42} className="mx-auto text-rose-600 animate-spin" />
                   <div>
-                    <h3 className="text-lg font-black text-slate-900">Off-Chain Records Wipe Progress…</h3>
+                    <h3 className="text-lg font-black text-slate-900">Off-Chain Records Wipe Progressâ€¦</h3>
                     <p className="text-xs font-semibold text-slate-400 mt-1">Purging PII database tables under DPDP compliance rules...</p>
                   </div>
                 </div>
@@ -1489,7 +1515,7 @@ export default function CitizenPortal({ defaultTab }) {
                     </div>
 
                     <p className="text-xs font-extrabold text-slate-300 italic">
-                      "Chain par ab sirf ye bacha hai: <span className="font-mono text-amber-300">0x8f3a…c21b</span>. 32 bytes, jinka ab koi matlab nahi."
+                      "Chain par ab sirf ye bacha hai: <span className="font-mono text-amber-300">0x8f3aâ€¦c21b</span>. 32 bytes, jinka ab koi matlab nahi."
                     </p>
                   </div>
 
@@ -1503,7 +1529,7 @@ export default function CitizenPortal({ defaultTab }) {
 
                     <div className="p-3.5 rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-900 space-y-1">
                       <div className="text-[10px] font-extrabold uppercase text-indigo-700">Polygon Ledger</div>
-                      <div className="text-xs font-mono font-bold text-indigo-900">0x8f3a…c21b</div>
+                      <div className="text-xs font-mono font-bold text-indigo-900">0x8f3aâ€¦c21b</div>
                       <div className="text-[9px] font-semibold text-indigo-600">Immutable 32 Bytes Hash</div>
                     </div>
                   </div>
@@ -1524,6 +1550,9 @@ export default function CitizenPortal({ defaultTab }) {
     </div>
   )
 }
+
+
+
 
 
 

@@ -1,4 +1,4 @@
-// ---------------------------------------------------------------------------
+﻿// ---------------------------------------------------------------------------
 // Swappable data layer.
 //
 //   VITE_DATA_MODE=mock  -> everything runs offline from src/lib/mockData.js
@@ -6,7 +6,7 @@
 // ---------------------------------------------------------------------------
 import * as M from './mockData'
 
-const MODE = import.meta.env.VITE_DATA_MODE || 'mock'
+const MODE = import.meta.env.VITE_DATA_MODE || 'live'
 const BASE = import.meta.env.VITE_API_BASE || '/api'
 const wait = (ms) => new Promise((r) => setTimeout(r, ms))
 
@@ -44,7 +44,7 @@ export async function getGrievances(filters = {}) {
   return getMockGrievances()
 }
 
-/* GET /api/wards/silence  — the equity model */
+/* GET /api/wards/silence  â€” the equity model */
 export async function getSilenceModel() {
   const getMockSilence = async () => {
     await wait(140)
@@ -107,7 +107,7 @@ export async function getStats() {
   return getMockStats()
 }
 
-/* POST /api/grievances  — the full intake pipeline.
+/* POST /api/grievances  â€” the full intake pipeline.
    onStage() lets the UI narrate each backend step as it completes. */
 export async function submitGrievance({ text, channel = 'web', onStage = () => {} }) {
   const mockSubmit = async () => {
@@ -188,7 +188,7 @@ export async function submitGrievance({ text, channel = 'web', onStage = () => {
   return mockSubmit()
 }
 
-/* POST /api/grievances/:id/close  — officer claims resolution.
+/* POST /api/grievances/:id/close  â€” officer claims resolution.
    The system does NOT trust it; it triggers citizen verification. */
 export async function closeGrievance(id) {
   const mockClose = async () => {
@@ -204,7 +204,7 @@ export async function closeGrievance(id) {
   return mockClose()
 }
 
-/* POST /api/grievances/:id/verify  — citizen callback result. */
+/* POST /api/grievances/:id/verify  â€” citizen callback result. */
 export async function verifyGrievance(id, accepted) {
   const mockVerify = async () => {
     await wait(900)
@@ -226,3 +226,4 @@ export async function verifyGrievance(id, accepted) {
 }
 
 export { CITY, WARDS, CATEGORIES, catOf, priorityOf } from './mockData'
+

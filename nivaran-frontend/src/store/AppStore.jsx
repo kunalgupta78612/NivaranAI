@@ -57,19 +57,12 @@ export function StoreProvider({ children }) {
   useEffect(() => {
     Promise.all([getGrievances(), getOfficers(), getChainLog(), getAssets()])
       .then(([g, o, c, a]) => {
-        // Seed a few tickets as "mine" so the citizen's My Grievances list is
-        // never empty on stage â€” including one already awaiting verification,
-        // so the Re-open trap is visible the moment you open the portal.
-        const seeded = g.map((x, i) => {
-          if (i === 0) return { ...x, mine: true, status: 'closed_unverified', proofCid: cid() }
-          if (i === 1) return { ...x, mine: true, status: 'in_progress' }
-          if (i === 2) return { ...x, mine: true, status: 'verified_resolved' }
-          return x
-        })
+        const grievancesList = Array.isArray(g) ? g : (g?.grievances || [])
+        const seeded = grievancesList.map((x) => ({ ...x, mine: false }))
         setGrievances(seeded)
-        setOfficers(o)
-        setChain(c)
-        setAssets(a)
+        setOfficers(Array.isArray(o) ? o : (o?.officers || []))
+        setChain(Array.isArray(c) ? c : (c?.chain || []))
+        setAssets(Array.isArray(a) ? a : (a?.assets || []))
         setReady(true)
       })
       .catch((err) => {
@@ -196,4 +189,6 @@ export function StoreProvider({ children }) {
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
+
+
 

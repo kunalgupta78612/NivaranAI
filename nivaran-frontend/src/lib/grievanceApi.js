@@ -1,4 +1,4 @@
-﻿import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   createGrievance,
   getMyGrievances,
@@ -28,7 +28,7 @@ export function useMyGrievances() {
     queryKey: ['myGrievances'],
     queryFn: getMyGrievances,
     retry: 1,
-    staleTime: 1000 * 30,
+    staleTime: 0,
   })
 }
 
@@ -37,7 +37,7 @@ export function useGrievanceStats() {
     queryKey: ['grievanceStats'],
     queryFn: getCitizenDashboardStats,
     retry: 1,
-    staleTime: 1000 * 30,
+    staleTime: 0,
   })
 }
 
@@ -46,7 +46,7 @@ export function useGrievanceCount() {
     queryKey: ['grievanceCount'],
     queryFn: getMyGrievanceCount,
     retry: 1,
-    staleTime: 1000 * 30,
+    staleTime: 0,
   })
 }
 

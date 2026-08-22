@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { useRegister, useLogin } from '../lib/authApi'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -42,7 +42,7 @@ export default function AuthPage() {
   const loginMutation = useLogin()
 
   const personas = {
-    citizen: { name: 'Astha P.', detail: 'Vijay Nagar, Ward 12', route: '/citizen', badge: 'Citizen Persona' },
+    citizen: { name: 'Astha P.', detail: 'Vijay Nagar, Ward 12', route: '/citizen/dashboard', badge: 'Citizen Persona' },
     officer: { name: 'R. K. Sharma', detail: 'PWD Zone 3 Officer', route: '/officer', badge: 'Ground Officer Persona' },
     admin: { name: 'Indore Municipal Corp.', detail: 'City Commissioner', route: '/admin', badge: 'Commissioner Persona' }
   }
@@ -407,7 +407,7 @@ export default function AuthPage() {
                       <div className="relative">
                         <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                         <input type={showPassword ? 'text' : 'password'} value={formData.password} onChange={(e) => handleChange('password', e.target.value)}
-                          placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                          placeholder="Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢"
                           className="w-full rounded-2xl pl-10 pr-10 py-2.5 text-xs font-bold text-slate-800 placeholder:text-slate-300 outline-none transition-all border border-slate-200 focus:border-indigo-500 bg-white/70" />
                         <button type="button" onClick={() => setShowPassword(!showPassword)}
                           className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
@@ -436,7 +436,7 @@ export default function AuthPage() {
                     <div className="relative">
                       <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                       <input type={showPassword ? 'text' : 'password'} required value={formData.password} onChange={(e) => handleChange('password', e.target.value)}
-                        placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                        placeholder="Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢"
                         className="w-full rounded-2xl pl-10 pr-10 py-3 text-xs font-bold text-slate-800 placeholder:text-slate-300 outline-none transition-all border border-slate-200 focus:border-indigo-500 bg-white/70" />
                       <button type="button" onClick={() => setShowPassword(!showPassword)}
                         className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
@@ -458,7 +458,7 @@ export default function AuthPage() {
               <button type="submit" disabled={loading}
                 className="btn-primary w-full py-3.5 text-sm font-extrabold shadow-lg flex items-center justify-center gap-2 mt-4">
                 {loading
-                  ? <span className="animate-pulse">Saving Citizen Recordâ€¦</span>
+                  ? <span className="animate-pulse">Saving Citizen RecordÃ¢â‚¬Â¦</span>
                   : isSignup ? <><UserPlus size={18} /> Register Verified Citizen</> : <><LogIn size={18} /> Sign In to {role === 'citizen' ? 'Citizen Portal' : role === 'officer' ? 'Task Board' : 'God Mode'}</>}
               </button>
             </form>
@@ -469,7 +469,7 @@ export default function AuthPage() {
       {/* Footer */}
       <footer className="relative z-10 py-6 border-t border-indigo-100/60 bg-white/40 backdrop-blur-md mt-6">
         <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-semibold text-slate-500">
-          <div>Indore Municipal Corporation Â· Nivaran AI</div>
+          <div>Indore Municipal Corporation Ã‚Â· Nivaran AI</div>
           <div className="flex items-center gap-6">
             <Link to="/" className="hover:text-indigo-600 transition-colors">Home</Link>
             <Link to="/citizen" className="hover:text-indigo-600 transition-colors">Citizen</Link>
@@ -481,5 +481,6 @@ export default function AuthPage() {
     </div>
   )
 }
+
 
 
