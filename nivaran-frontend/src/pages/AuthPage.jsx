@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { useRegister, useLogin } from '../lib/authApi'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -137,8 +137,8 @@ export default function AuthPage() {
           password: formData.password,
         })
       }
-      // Redirect to citizen dashboard on success
-      nav("/citizen")
+      // Redirect to selected role dashboard on success
+      nav(personas[role].route)
     } catch (err) {
       setApiError(err.message || "Something went wrong. Please try again.")
     } finally {

@@ -1,4 +1,4 @@
-﻿import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { LogOut, Activity, ChevronDown, Check, CheckCircle2, AlertTriangle, Info, XCircle, ShieldCheck, Sparkles } from 'lucide-react'
@@ -21,6 +21,10 @@ export default function Layout({ children }) {
     document.addEventListener('mousedown', h)
     return () => document.removeEventListener('mousedown', h)
   }, [])
+
+  if (loc.pathname.startsWith('/citizen')) {
+    return <>{children}</>
+  }
 
   return (
     <div className="min-h-screen flex flex-col relative text-slate-900 selection:bg-indigo-500/20 selection:text-indigo-900">

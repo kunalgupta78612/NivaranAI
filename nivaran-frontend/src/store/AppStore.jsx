@@ -41,6 +41,10 @@ export function StoreProvider({ children }) {
         setAssets(a)
         setReady(true)
       })
+      .catch((err) => {
+        console.error('Failed to initialize store:', err)
+        setReady(true)
+      })
   }, [])
 
   const emit = useCallback((event, g, extra = {}) => {
