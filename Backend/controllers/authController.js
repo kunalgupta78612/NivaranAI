@@ -1,5 +1,6 @@
 const { validationResult } = require("express-validator");
 const Citizen = require("../models/Citizen");
+const Notification = require("../models/Notification");
 const generateToken = require("../utils/generateToken");
 const { setTokenCookie, clearTokenCookie } = require("../utils/cookieUtils");
 const errorResponse = require("../utils/errorResponse");
@@ -33,9 +34,9 @@ const register = async (req, res) => {
     } = req.body;
 
     // Check if email already exists
-    const existingEmail = await Citizen.findOne({ email });
+    const existingEmail = await Citizen.findOne({ email: email.toLowerCase() });
     if (existingEmail) {
-      return errorResponse(res, 409, "A citizen with this email already exists");
+      return errorResponse(res, 409, "A citizen with this email address already exists");
     }
 
     // Check if mobile number already exists
@@ -58,17 +59,39 @@ const register = async (req, res) => {
       pincode,
       aadhaarNumber,
       profilePhoto: profilePhoto || null,
+      status: "pending",
+    });
+
+    // Create notification for Admin
+    await Notification.create({
+      recipientType: "admin",
+      recipientId: "admin",
+      title: "New Citizen Registration Pending Approval",
+      message: `Citizen ${citizen.fullName} (${citizen.email}) registered and is awaiting admin approval.`,
+      type: "citizen_approved",
+      link: "/admin",
+    });
+
+    // Create notification for Departments
+    await Notification.create({
+      recipientType: "department",
+      recipientId: "all",
+      title: "New Citizen Account Created",
+      message: `Citizen ${citizen.fullName} (${citizen.city || 'Indore'}) created an account pending admin approval.`,
+      type: "citizen_approved",
+      link: "/officer",
     });
 
     // Return success — toJSON() strips password and masks Aadhaar
     res.status(201).json({
       success: true,
-      message: "Citizen registered successfully",
+      message: "Citizen registered successfully! Your account is pending admin approval.",
       citizen: {
         id: citizen._id,
         name: citizen.fullName,
         email: citizen.email,
         role: citizen.role,
+        status: citizen.status,
       },
     });
   } catch (error) {
@@ -110,6 +133,17 @@ const login = async (req, res) => {
       return errorResponse(res, 401, "Invalid credentials");
     }
 
+    // Check citizen approval status
+    if (citizen.status === "pending") {
+      return errorResponse(res, 403, "Your account is pending admin approval.");
+    }
+    if (citizen.status === "rejected") {
+      return errorResponse(res, 403, "Your account has been rejected.");
+    }
+    if (citizen.status !== "approved") {
+      return errorResponse(res, 403, "Your account is not approved to access the dashboard.");
+    }
+
     // Check account status
     if (citizen.accountStatus !== "active") {
       return errorResponse(
@@ -134,6 +168,7 @@ const login = async (req, res) => {
         name: citizen.fullName,
         email: citizen.email,
         role: citizen.role,
+        status: citizen.status,
       },
     });
   } catch (error) {
@@ -167,6 +202,11 @@ const getMe = async (req, res) => {
 
     if (!citizen) {
       return errorResponse(res, 404, "Citizen not found");
+    }
+
+    if (citizen.status !== "approved") {
+      clearTokenCookie(res);
+      return errorResponse(res, 403, `Your account is ${citizen.status}. Admin approval is required.`);
     }
 
     res.status(200).json({

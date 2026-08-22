@@ -102,6 +102,14 @@ const citizenSchema = new mongoose.Schema(
       },
       default: "active",
     },
+    status: {
+      type: String,
+      enum: {
+        values: ["pending", "approved", "rejected"],
+        message: "Invalid status",
+      },
+      default: "pending",
+    },
   },
   {
     timestamps: true, // Adds createdAt and updatedAt automatically

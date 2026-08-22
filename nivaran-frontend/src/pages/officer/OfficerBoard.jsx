@@ -5,7 +5,7 @@ import {
   LayoutDashboard, ListTodo, Activity, Bell, User, Settings, LogOut, Search,
   Clock, AlertTriangle, Camera, X, Loader2, Check, PlayCircle, MapPin,
   Layers, Hammer, PackageCheck, RotateCcw, ShieldAlert, Link2, Zap, Building2,
-  Lock, Eye, EyeOff, KeyRound, Shield, CheckCircle2, Award, TrendingUp, Sparkles, Filter, CheckCircle
+  Lock, Eye, EyeOff, KeyRound, Shield, CheckCircle2, Award, TrendingUp, Sparkles, Filter, CheckCircle, Users, XCircle
 } from 'lucide-react'
 import { CATEGORIES } from '../../lib/mockData'
 import { PriorityBadge, StatTile, Select, Empty } from '../../components/ui'
@@ -15,8 +15,12 @@ import {
   useDepartmentLogout,
   useDepartmentGrievances,
   useUpdateGrievanceStatusDept,
-  useDepartmentChangePassword
+  useDepartmentChangePassword,
+  useDepartmentCitizens,
+  useApproveCitizenDept,
+  useRejectCitizenDept
 } from '../../lib/departmentAuthApi'
+import NotificationBell from '../../components/NotificationBell'
 
 const STATUS_OPTIONS = [
   { value: 'pending', label: 'Pending', color: 'bg-amber-500/10 text-amber-600 border-amber-500/20' },
@@ -96,6 +100,38 @@ export default function OfficerBoard() {
   const [pwdMsg, setPwdMsg] = useState(null)
 
   const changePasswordMutation = useDepartmentChangePassword()
+
+  // Department Citizen Approval Hooks
+  const { data: citizenRes, isLoading: citizenLoading } = useDepartmentCitizens()
+  const approveCitizenMutation = useApproveCitizenDept()
+  const rejectCitizenMutation = useRejectCitizenDept()
+
+  const citizenList = citizenRes?.citizens || []
+  const pendingCitizensCount = citizenList.filter((c) => (c.status || 'pending') === 'pending').length
+
+  const handleApproveCitizen = async (id) => {
+    try {
+      await approveCitizenMutation.mutateAsync(id)
+    } catch (err) {
+      console.error('Failed to approve citizen:', err)
+    }
+  }
+
+  const handleRejectCitizen = async (id) => {
+    try {
+      await rejectCitizenMutation.mutateAsync(id)
+    } catch (err) {
+      console.error('Failed to reject citizen:', err)
+    }
+  }
+
+  const filteredCitizens = citizenList.filter((c) =>
+    searchQuery === '' ||
+    (c.fullName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (c.email || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (c.mobile || '').includes(searchQuery) ||
+    (c.city || '').toLowerCase().includes(searchQuery.toLowerCase())
+  )
 
   const pool = useMemo(() => rawGrievances
     .filter((g) =>
@@ -227,6 +263,7 @@ export default function OfficerBoard() {
             {[
               { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
               { key: 'board', label: 'All Grievances', icon: ListTodo, badge: pool.length.toString() },
+              { key: 'citizens', label: 'Citizen Approvals', icon: Users, badge: pendingCitizensCount > 0 ? pendingCitizensCount.toString() : null },
               { key: 'analytics', label: 'Analytics & SLA', icon: Activity },
               { key: 'notifications', label: 'Notifications', icon: Bell, badge: reopened > 0 ? reopened.toString() : null },
               { key: 'profile', label: 'Department Profile', icon: User },
@@ -286,6 +323,7 @@ export default function OfficerBoard() {
             <h1 className="text-sm font-black text-slate-900 uppercase tracking-wider">
               {tab === 'dashboard' && `${officerDept} Dashboard`}
               {tab === 'board' && 'Department Grievances'}
+              {tab === 'citizens' && 'Citizen Account Approvals'}
               {tab === 'analytics' && 'SLA Compliance & Metrics'}
               {tab === 'notifications' && 'Alerts & Reopened Grievances'}
               {tab === 'profile' && 'Department Details'}
@@ -307,13 +345,7 @@ export default function OfficerBoard() {
               />
             </div>
 
-            {/* Notification Bell */}
-            <button
-              onClick={() => setTab('notifications')}
-              className="relative p-2 rounded-xl bg-white/80 border border-slate-200/80 text-slate-600 hover:text-slate-900 transition-all shadow-glass-xs">
-              <Bell size={16} />
-              {reopened > 0 && <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-rose-500 animate-pulse" />}
-            </button>
+            <NotificationBell />
 
             {/* Profile Avatar Pill */}
             <div className="flex items-center gap-3 pl-3 border-l border-slate-200/80">
@@ -646,6 +678,97 @@ export default function OfficerBoard() {
                 </div>
               </div>
 
+            </motion.div>
+          )}
+
+          {/* ============================================================ */}
+          {/* TAB: CITIZEN APPROVALS                                       */}
+          {/* ============================================================ */}
+          {tab === 'citizens' && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+              <div className="p-7 rounded-3xl panel shadow-3d-card space-y-5">
+                <div className="flex items-center justify-between pb-4 border-b border-slate-200/60">
+                  <div>
+                    <h3 className="font-black text-slate-900 text-base flex items-center gap-2">
+                      <Users size={20} className="text-indigo-600" /> Citizen Account Approvals
+                    </h3>
+                    <p className="text-xs font-semibold text-slate-400 mt-0.5">
+                      Review registered citizen accounts and approve or reject access to the portal.
+                    </p>
+                  </div>
+                  <span className="px-3 py-1 rounded-full text-xs font-black bg-amber-50 text-amber-700 border border-amber-200">
+                    {pendingCitizensCount} Pending Approval
+                  </span>
+                </div>
+
+                {citizenLoading ? (
+                  <div className="p-8 text-center text-xs font-bold text-slate-400">Loading citizen directory...</div>
+                ) : filteredCitizens.length === 0 ? (
+                  <div className="p-8 text-center text-xs font-bold text-slate-400">No citizens match your search query.</div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs font-semibold">
+                      <thead>
+                        <tr className="border-b border-slate-200 text-slate-400 uppercase tracking-wider text-[10px]">
+                          <th className="py-3 px-3">Citizen Name</th>
+                          <th className="py-3 px-3">Email Address</th>
+                          <th className="py-3 px-3">Mobile Number</th>
+                          <th className="py-3 px-3">City & State</th>
+                          <th className="py-3 px-3">Registration Date</th>
+                          <th className="py-3 px-3">Status</th>
+                          <th className="py-3 px-3 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {filteredCitizens.map((c) => {
+                          const cStatus = c.status || 'pending'
+                          return (
+                            <tr key={c._id} className="hover:bg-slate-50/60 transition-colors">
+                              <td className="py-3.5 px-3 font-extrabold text-slate-800">{c.fullName}</td>
+                              <td className="py-3.5 px-3 font-mono text-slate-600">{c.email}</td>
+                              <td className="py-3.5 px-3 font-mono text-slate-600">{c.mobile}</td>
+                              <td className="py-3.5 px-3 text-slate-600">{c.city || 'Indore'}, {c.state || 'Madhya Pradesh'}</td>
+                              <td className="py-3.5 px-3 text-slate-400">{new Date(c.createdAt).toLocaleDateString()}</td>
+                              <td className="py-3.5 px-3">
+                                <span className={cx(
+                                  "px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border",
+                                  cStatus === 'approved' ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+                                  cStatus === 'rejected' ? "bg-rose-50 text-rose-700 border-rose-200" :
+                                  "bg-amber-50 text-amber-700 border-amber-200"
+                                )}>
+                                  {cStatus === 'pending' ? 'Pending Approval' : cStatus}
+                                </span>
+                              </td>
+                              <td className="py-3.5 px-3 text-right">
+                                <div className="flex items-center justify-end gap-1.5 shrink-0">
+                                  {cStatus !== 'approved' && (
+                                    <button
+                                      onClick={() => handleApproveCitizen(c._id)}
+                                      disabled={approveCitizenMutation.isPending}
+                                      className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-extrabold transition-all shadow-sm flex items-center gap-1 disabled:opacity-50">
+                                      <CheckCircle2 size={13} />
+                                      <span>Approve</span>
+                                    </button>
+                                  )}
+                                  {cStatus !== 'rejected' && (
+                                    <button
+                                      onClick={() => handleRejectCitizen(c._id)}
+                                      disabled={rejectCitizenMutation.isPending}
+                                      className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-extrabold transition-all flex items-center gap-1 disabled:opacity-50">
+                                      <XCircle size={13} />
+                                      <span>Reject</span>
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
             </motion.div>
           )}
 

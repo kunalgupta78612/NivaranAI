@@ -7,6 +7,9 @@ import {
   getDepartmentGrievances,
   updateGrievanceStatusDept,
   changeDepartmentPassword,
+  getDepartmentCitizens,
+  approveCitizenByDept,
+  rejectCitizenByDept,
 } from '../api/departmentApi'
 
 // ========================
@@ -92,5 +95,44 @@ export function useUpdateGrievanceStatusDept() {
 export function useDepartmentChangePassword() {
   return useMutation({
     mutationFn: changeDepartmentPassword,
+  })
+}
+
+// ========================
+// Department Citizen Hooks
+// ========================
+
+export function useDepartmentCitizens() {
+  return useQuery({
+    queryKey: ['departmentCitizens'],
+    queryFn: getDepartmentCitizens,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+  })
+}
+
+export function useApproveCitizenDept() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: approveCitizenByDept,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['departmentCitizens'] })
+      queryClient.invalidateQueries({ queryKey: ['adminCitizens'] })
+      queryClient.invalidateQueries({ queryKey: ['adminStats'] })
+      queryClient.invalidateQueries({ queryKey: ['currentCitizen'] })
+    },
+  })
+}
+
+export function useRejectCitizenDept() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: rejectCitizenByDept,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['departmentCitizens'] })
+      queryClient.invalidateQueries({ queryKey: ['adminCitizens'] })
+      queryClient.invalidateQueries({ queryKey: ['adminStats'] })
+      queryClient.invalidateQueries({ queryKey: ['currentCitizen'] })
+    },
   })
 }

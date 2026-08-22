@@ -14,6 +14,9 @@ const {
 const {
   getDepartmentGrievances,
   updateGrievanceStatus,
+  getDepartmentCitizens,
+  approveCitizenByDept,
+  rejectCitizenByDept,
 } = require("../controllers/departmentGrievanceController");
 
 // Middleware
@@ -57,5 +60,12 @@ router.put("/change-password", protectDepartment, changePassword);
 // ========================
 router.get("/grievances", protectDepartment, getDepartmentGrievances);
 router.patch("/grievances/:id/status", protectDepartment, updateGrievanceStatus);
+
+// ========================
+// Department Citizen Approval Routes (Protected)
+// ========================
+router.get("/citizens", protectDepartment, getDepartmentCitizens);
+router.patch("/citizens/:id/approve", protectDepartment, approveCitizenByDept);
+router.patch("/citizens/:id/reject", protectDepartment, rejectCitizenByDept);
 
 module.exports = router;

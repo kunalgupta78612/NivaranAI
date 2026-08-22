@@ -1,4 +1,5 @@
 const Grievance = require("../models/Grievance");
+const Notification = require("../models/Notification");
 const errorResponse = require("../utils/errorResponse");
 
 // ========================
@@ -31,6 +32,7 @@ const createGrievance = async (req, res) => {
 
     const randomNum = Math.floor(100000 + Math.random() * 900000);
     const ticketId = `GRV-${randomNum}`;
+    const targetDept = dept || "Sanitation Department";
 
     const grievance = await Grievance.create({
       citizen: req.user.userId,
@@ -40,7 +42,7 @@ const createGrievance = async (req, res) => {
       channel: channel || "web",
       category: category || "sanitation",
       categoryLabel: categoryLabel || "Sanitation & Waste",
-      dept: dept || "Sanitation Department",
+      dept: targetDept,
       wardId: wardId || "W-12",
       wardName: wardName || "Vijay Nagar (Ward 12)",
       landmark: landmark ? landmark.trim() : "",
@@ -55,6 +57,26 @@ const createGrievance = async (req, res) => {
       ],
       officerName: officerName || "R. K. Sharma",
       slaDays: slaDays || 5,
+    });
+
+    // Create notification for target Department
+    await Notification.create({
+      recipientType: "department",
+      recipientId: targetDept,
+      title: "New Grievance Assigned",
+      message: `New grievance ${ticketId} registered in ${categoryLabel || category} for ${wardName || 'Indore'}.`,
+      type: "grievance_submitted",
+      link: "/officer",
+    });
+
+    // Create notification for Admin
+    await Notification.create({
+      recipientType: "admin",
+      recipientId: "admin",
+      title: "New Grievance Ingested",
+      message: `Grievance ${ticketId} submitted by citizen assigned to ${targetDept}.`,
+      type: "grievance_submitted",
+      link: "/admin",
     });
 
     res.status(201).json({

@@ -13,10 +13,13 @@ import {
   useAdminAllGrievances,
   useApproveDepartment,
   useRejectDepartment,
+  useApproveCitizen,
+  useRejectCitizen,
   useAdminDeleteGrievance
 } from '../../lib/adminAuthApi'
 import { StatTile, PriorityBadge } from '../../components/ui'
 import { timeAgo } from '../../lib/utils'
+import NotificationBell from '../../components/NotificationBell'
 
 export default function GodMode() {
   const navigate = useNavigate()
@@ -34,6 +37,8 @@ export default function GodMode() {
 
   const approveDeptMutation = useApproveDepartment()
   const rejectDeptMutation = useRejectDepartment()
+  const approveCitizenMutation = useApproveCitizen()
+  const rejectCitizenMutation = useRejectCitizen()
   const deleteGrievanceMutation = useAdminDeleteGrievance()
 
   const [deleteTarget, setDeleteTarget] = useState(null)
@@ -97,22 +102,38 @@ export default function GodMode() {
     }
   }
 
+  const handleApproveCitizen = async (id) => {
+    try {
+      await approveCitizenMutation.mutateAsync(id)
+    } catch (err) {
+      console.error('Failed to approve citizen:', err)
+    }
+  }
+
+  const handleRejectCitizen = async (id) => {
+    try {
+      await rejectCitizenMutation.mutateAsync(id)
+    } catch (err) {
+      console.error('Failed to reject citizen:', err)
+    }
+  }
+
   // Filtered lists for tables
   const filteredDepartments = departmentList.filter((d) =>
     (statusFilter === 'all' || d.status === statusFilter) &&
     (searchQuery === '' ||
-      d.department.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      d.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      d.city.toLowerCase().includes(searchQuery.toLowerCase()))
+      (d.department || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (d.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (d.email || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (d.city || '').toLowerCase().includes(searchQuery.toLowerCase()))
   )
 
   const filteredCitizens = citizenList.filter((c) =>
     searchQuery === '' ||
-    c.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.mobile.includes(searchQuery) ||
-    c.city.toLowerCase().includes(searchQuery.toLowerCase())
+    (c.fullName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (c.email || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (c.mobile || '').includes(searchQuery) ||
+    (c.city || '').toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   const filteredGrievances = grievanceList.filter((g) =>
@@ -120,8 +141,10 @@ export default function GodMode() {
     (searchQuery === '' ||
       (g.ticketId || g._id || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (g.text || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (g.categoryLabel || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (g.wardName || '').toLowerCase().includes(searchQuery.toLowerCase()))
+      (g.categoryLabel || g.category || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (g.wardName || g.landmark || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (g.citizen?.fullName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (g.citizen?.email || '').toLowerCase().includes(searchQuery.toLowerCase()))
   )
 
   return (
@@ -142,6 +165,7 @@ export default function GodMode() {
         </div>
 
         <div className="flex items-center gap-3">
+          <NotificationBell />
           <button
             onClick={handleLogout}
             disabled={logoutMutation.isPending}
@@ -431,18 +455,32 @@ export default function GodMode() {
                     <th className="py-3 px-3">Mobile Number</th>
                     <th className="py-3 px-3">City & State</th>
                     <th className="py-3 px-3">Registration Date</th>
+                    <th className="py-3 px-3">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {filteredCitizens.map((c) => (
-                    <tr key={c._id} className="hover:bg-slate-50/60 transition-colors">
-                      <td className="py-3.5 px-3 font-extrabold text-slate-800">{c.fullName}</td>
-                      <td className="py-3.5 px-3 font-mono text-slate-600">{c.email}</td>
-                      <td className="py-3.5 px-3 font-mono text-slate-600">{c.mobile}</td>
-                      <td className="py-3.5 px-3 text-slate-600">{c.city || 'Indore'}, {c.state || 'Madhya Pradesh'}</td>
-                      <td className="py-3.5 px-3 text-slate-400">{new Date(c.createdAt).toLocaleDateString()}</td>
-                    </tr>
-                  ))}
+                  {filteredCitizens.map((c) => {
+                    const cStatus = c.status || 'pending'
+                    return (
+                      <tr key={c._id} className="hover:bg-slate-50/60 transition-colors">
+                        <td className="py-3.5 px-3 font-extrabold text-slate-800">{c.fullName}</td>
+                        <td className="py-3.5 px-3 font-mono text-slate-600">{c.email}</td>
+                        <td className="py-3.5 px-3 font-mono text-slate-600">{c.mobile}</td>
+                        <td className="py-3.5 px-3 text-slate-600">{c.city || 'Indore'}, {c.state || 'Madhya Pradesh'}</td>
+                        <td className="py-3.5 px-3 text-slate-400">{new Date(c.createdAt).toLocaleDateString()}</td>
+                        <td className="py-3.5 px-3">
+                          <span className={cx(
+                            "px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border",
+                            cStatus === 'approved' ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+                            cStatus === 'rejected' ? "bg-rose-50 text-rose-700 border-rose-200" :
+                            "bg-amber-50 text-amber-700 border-amber-200"
+                          )}>
+                            {cStatus === 'pending' ? 'Pending Approval' : cStatus}
+                          </span>
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>

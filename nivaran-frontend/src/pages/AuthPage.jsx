@@ -171,17 +171,17 @@ export default function AuthPage() {
         if (isSignup && !validate()) { setLoading(false); return }
         if (isSignup) {
           await registerMutation.mutateAsync(formData)
-          await loginMutation.mutateAsync({
-            email: formData.email,
-            password: formData.password,
-          })
+          setSuccessMsg('Citizen registration submitted! Your account is pending admin approval before you can log in.')
+          setLoading(false)
+          nav('/login')
+          return
         } else {
           await loginMutation.mutateAsync({
             email: formData.email,
             password: formData.password,
           })
+          nav(personas[activeRole].route)
         }
-        nav(personas[activeRole].route)
       }
     } catch (err) {
       const msg = err?.response?.data?.message || err.message || "Something went wrong. Please try again."

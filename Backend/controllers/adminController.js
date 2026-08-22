@@ -3,6 +3,7 @@ const Admin = require("../models/Admin");
 const Department = require("../models/Department");
 const Citizen = require("../models/Citizen");
 const Grievance = require("../models/Grievance");
+const Notification = require("../models/Notification");
 const errorResponse = require("../utils/errorResponse");
 
 function generateAdminToken(adminId, email) {
@@ -278,6 +279,84 @@ const deleteGrievance = async (req, res) => {
   }
 };
 
+// ========================
+// @desc    Approve citizen registration
+// @route   PATCH /api/admin/citizens/:id/approve
+// @access  Private (Admin)
+// ========================
+const approveCitizen = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const citizen = await Citizen.findByIdAndUpdate(
+      id,
+      { status: "approved" },
+      { new: true, runValidators: true }
+    );
+
+    if (!citizen) {
+      return errorResponse(res, 404, "Citizen not found");
+    }
+
+    // Send notification to the citizen
+    await Notification.create({
+      recipientType: "citizen",
+      recipientId: String(citizen._id),
+      title: "Account Approved",
+      message: "Your citizen account has been approved by admin! You can now log in and submit grievances.",
+      type: "citizen_approved",
+      link: "/login",
+    });
+
+    // Send notification to departments
+    await Notification.create({
+      recipientType: "department",
+      recipientId: "Sanitation Department",
+      title: "New Citizen Approved",
+      message: `Citizen ${citizen.fullName} account has been approved by Admin.`,
+      type: "citizen_approved",
+      link: "/officer",
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `Citizen '${citizen.fullName}' has been approved successfully`,
+      citizen,
+    });
+  } catch (error) {
+    console.error("Approve Citizen Error:", error.message);
+    return errorResponse(res, 500, "An error occurred while approving citizen");
+  }
+};
+
+// ========================
+// @desc    Reject citizen registration
+// @route   PATCH /api/admin/citizens/:id/reject
+// @access  Private (Admin)
+// ========================
+const rejectCitizen = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const citizen = await Citizen.findByIdAndUpdate(
+      id,
+      { status: "rejected" },
+      { new: true, runValidators: true }
+    );
+
+    if (!citizen) {
+      return errorResponse(res, 404, "Citizen not found");
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Citizen '${citizen.fullName}' has been rejected`,
+      citizen,
+    });
+  } catch (error) {
+    console.error("Reject Citizen Error:", error.message);
+    return errorResponse(res, 500, "An error occurred while rejecting citizen");
+  }
+};
+
 module.exports = {
   login,
   logout,
@@ -289,4 +368,6 @@ module.exports = {
   approveDepartment,
   rejectDepartment,
   deleteGrievance,
+  approveCitizen,
+  rejectCitizen,
 };

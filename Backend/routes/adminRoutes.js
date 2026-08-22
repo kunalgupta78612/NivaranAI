@@ -11,6 +11,8 @@ const {
   approveDepartment,
   rejectDepartment,
   deleteGrievance,
+  approveCitizen,
+  rejectCitizen,
 } = require("../controllers/adminController");
 const { protectAdmin } = require("../middleware/adminMiddleware");
 
@@ -28,5 +30,7 @@ router.delete("/grievances/:id", protectAdmin, deleteGrievance);
 
 router.patch("/departments/:id/approve", protectAdmin, approveDepartment);
 router.patch("/departments/:id/reject", protectAdmin, rejectDepartment);
+router.patch("/citizens/:id/approve", protectAdmin, approveCitizen);
+router.patch("/citizens/:id/reject", protectAdmin, rejectCitizen);
 
 module.exports = router;

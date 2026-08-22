@@ -1,4 +1,4 @@
-﻿const express = require("express");
+const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const helmet = require("helmet");
@@ -14,6 +14,7 @@ const authRoutes = require("./routes/authRoutes");
 const grievanceRoutes = require("./routes/grievanceRoutes");
 const departmentRoutes = require("./routes/departmentRoutes");
 const adminRoutes = require("./routes/adminRoutes");
+const notificationRoutes = require("./routes/notificationRoutes");
 
 const { getGrievanceStats } = require("./controllers/grievanceController");
 const { protect } = require("./middleware/authMiddleware");
@@ -75,6 +76,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/grievances", grievanceRoutes);
 app.use("/api/department", departmentRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/notifications", notificationRoutes);
 app.get("/api/citizen/dashboard/stats", protect, getGrievanceStats);
 
 // Support Routes

@@ -10,6 +10,8 @@ import {
   approveDepartment,
   rejectDepartment,
   deleteAdminGrievance,
+  approveCitizen,
+  rejectCitizen,
 } from '../api/index'
 
 export {
@@ -23,6 +25,8 @@ export {
   approveDepartment,
   rejectDepartment,
   deleteAdminGrievance,
+  approveCitizen,
+  rejectCitizen,
 }
 
 // ========================
@@ -120,6 +124,30 @@ export function useRejectDepartment() {
       queryClient.invalidateQueries({ queryKey: ['adminDepartments'] })
       queryClient.invalidateQueries({ queryKey: ['adminStats'] })
       queryClient.invalidateQueries({ queryKey: ['currentDepartment'] })
+    },
+  })
+}
+
+export function useApproveCitizen() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id) => approveCitizen(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminCitizens'] })
+      queryClient.invalidateQueries({ queryKey: ['adminStats'] })
+      queryClient.invalidateQueries({ queryKey: ['currentCitizen'] })
+    },
+  })
+}
+
+export function useRejectCitizen() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id) => rejectCitizen(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminCitizens'] })
+      queryClient.invalidateQueries({ queryKey: ['adminStats'] })
+      queryClient.invalidateQueries({ queryKey: ['currentCitizen'] })
     },
   })
 }

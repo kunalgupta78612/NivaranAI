@@ -49,3 +49,13 @@ export const deleteAdminGrievance = async (id) => {
   const response = await api.delete(`/admin/grievances/${id}`);
   return response.data;
 };
+
+export const approveCitizen = async (id) => {
+  const response = await api.patch(`/admin/citizens/${id}/approve`);
+  return response.data;
+};
+
+export const rejectCitizen = async (id) => {
+  const response = await api.patch(`/admin/citizens/${id}/reject`);
+  return response.data;
+};

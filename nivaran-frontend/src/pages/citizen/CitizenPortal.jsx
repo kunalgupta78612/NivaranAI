@@ -14,6 +14,7 @@ import { PriorityBadge } from '../../components/ui'
 import { cx, timeAgo } from '../../lib/utils'
 import { useCurrentCitizen, useLogout, useChangePassword } from '../../lib/authApi'
 import { useMyGrievances, useGrievanceStats, useSubmitGrievance, useUpdateGrievanceStatus, useDeleteGrievance, useGrievanceTracking } from '../../lib/grievanceApi'
+import NotificationBell from '../../components/NotificationBell'
 
 function GrievanceTrackerTimeline({ grievance }) {
   const targetId = grievance?._id || grievance?.id || grievance?.ticketId
@@ -507,12 +508,7 @@ export default function CitizenPortal({ defaultTab }) {
               </span>
             )}
 
-            <button
-              onClick={() => setTab('notifications')}
-              className="relative p-2 rounded-2xl bg-white/70 border border-slate-200/80 text-slate-600 hover:text-indigo-600 hover:shadow-glass-xs transition-all">
-              <Bell size={16} />
-              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
-            </button>
+            <NotificationBell />
 
             <div className="flex items-center gap-3 pl-3 border-l border-slate-200/80">
               <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-100 grid place-items-center text-xs font-black text-indigo-600">

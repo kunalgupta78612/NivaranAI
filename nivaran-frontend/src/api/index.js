@@ -91,4 +91,6 @@ export {
   approveDepartment,
   rejectDepartment,
   deleteAdminGrievance,
+  approveCitizen,
+  rejectCitizen,
 } from './adminApi';

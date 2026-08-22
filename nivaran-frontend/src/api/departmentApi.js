@@ -38,3 +38,20 @@ export const updateGrievanceStatusDept = async ({ id, status }) => {
   const response = await api.patch(`/department/grievances/${id}/status`, { status })
   return response.data
 }
+
+// ----------------- DEPARTMENT CITIZENS -------------------------------
+
+export const getDepartmentCitizens = async () => {
+  const response = await api.get('/department/citizens')
+  return response.data
+}
+
+export const approveCitizenByDept = async (id) => {
+  const response = await api.patch(`/department/citizens/${id}/approve`)
+  return response.data
+}
+
+export const rejectCitizenByDept = async (id) => {
+  const response = await api.patch(`/department/citizens/${id}/reject`)
+  return response.data
+}

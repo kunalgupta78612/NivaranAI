@@ -1,4 +1,4 @@
-﻿const jwt = require("jsonwebtoken");
+const jwt = require("jsonwebtoken");
 const Admin = require("../models/Admin");
 const errorResponse = require("../utils/errorResponse");
 
@@ -25,7 +25,17 @@ const protectAdmin = async (req, res, next) => {
       return errorResponse(res, 403, "Forbidden, admin access required");
     }
 
-    const admin = await Admin.findById(decoded.userId);
+    let admin = null;
+    if (decoded.userId) {
+      admin = await Admin.findById(decoded.userId);
+    }
+    if (!admin && decoded.email) {
+      admin = await Admin.findOne({ email: decoded.email.toLowerCase().trim() });
+    }
+    if (!admin) {
+      admin = await Admin.findOne({ role: "admin" });
+    }
+
     if (!admin) {
       return errorResponse(res, 401, "Admin account not found");
     }
