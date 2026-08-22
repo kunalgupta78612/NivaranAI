@@ -1,4 +1,4 @@
-const express = require("express");
+﻿const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const helmet = require("helmet");
@@ -158,7 +158,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
   try {
@@ -176,3 +176,4 @@ const startServer = async () => {
 };
 
 startServer();
+
