@@ -1,10 +1,11 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   CheckCircle2, Clock, Loader2, AlertTriangle, ImageOff, ArrowUpCircle,
   TrendingDown, Link2, Inbox, ThumbsUp, RotateCcw, ShieldCheck, Zap
 } from 'lucide-react'
 import { useStore } from '../../store/AppStore'
+import { useMyGrievances, useUpdateGrievanceStatus } from '../../lib/grievanceApi'
 import { PriorityBadge } from '../../components/ui'
 import { cx, timeAgo } from '../../lib/utils'
 
@@ -14,7 +15,7 @@ const STEP = {
   in_progress:        { i: 2, label: 'Work In Progress',             tone: 'text-indigo-600' },
   closed_unverified:  { i: 3, label: 'Officer Claimed "Resolved"',   tone: 'text-amber-700' },
   verified_resolved:  { i: 4, label: 'Confirmed & Closed',           tone: 'text-emerald-600' },
-  reopened:           { i: 3, label: 'Re-opened — Escalated',        tone: 'text-rose-600' },
+  reopened:           { i: 3, label: 'Re-opened â€” Escalated',        tone: 'text-rose-600' },
   escalated:          { i: 3, label: 'SLA Breach Escalated',         tone: 'text-violet-600' }
 }
 
@@ -86,9 +87,9 @@ export default function CitizenTrack() {
 
                   <div className="flex flex-wrap items-center gap-2 text-xs font-bold text-slate-400">
                     <span className="px-2 py-0.5 rounded-lg" style={{ background: 'rgba(99,102,241,0.06)' }}>{g.wardName}</span>
-                    <span>·</span>
+                    <span>Â·</span>
                     <span className="px-2 py-0.5 rounded-lg" style={{ background: 'rgba(6,182,212,0.06)', color: '#0284C7' }}>{g.categoryLabel}</span>
-                    <span>·</span>
+                    <span>Â·</span>
                     <span>{timeAgo(g.createdAt)}</span>
                   </div>
 
@@ -137,7 +138,7 @@ export default function CitizenTrack() {
                         <button onClick={() => reopen(g.id)} className="btn-danger text-xs py-2.5">
                           <RotateCcw size={14} /> Re-open
                         </button>
-                        <button onClick={() => citizenConfirm(g.id)} className="btn-emerald text-xs py-2.5">
+                        <button onClick={() => confirmFix(g.id || g._id)} className="btn-emerald text-xs py-2.5">
                           <ThumbsUp size={14} /> Confirm
                         </button>
                       </div>
@@ -159,7 +160,7 @@ export default function CitizenTrack() {
                           Escalated to Level 2 Zonal Officer</li>
                         {out.reused && (
                           <li className="flex items-center gap-2"><ImageOff size={13} className="text-rose-500 shrink-0" />
-                            <span><span className="text-slate-800 font-extrabold">Fake Photo Detected</span> — hash matched</span></li>
+                            <span><span className="text-slate-800 font-extrabold">Fake Photo Detected</span> â€” hash matched</span></li>
                         )}
                         <li className="flex items-center gap-2"><TrendingDown size={13} className="text-rose-500 shrink-0" />
                           Integrity Score: <span className="text-rose-600 font-black">{out.delta} pts</span></li>
@@ -180,3 +181,4 @@ export default function CitizenTrack() {
     </div>
   )
 }
+

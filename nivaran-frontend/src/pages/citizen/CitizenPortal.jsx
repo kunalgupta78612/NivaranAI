@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+﻿import { useState, useRef, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -13,6 +13,7 @@ import { useStore } from '../../store/AppStore'
 import { PriorityBadge } from '../../components/ui'
 import { cx, timeAgo } from '../../lib/utils'
 import { useCurrentCitizen, useLogout } from '../../lib/authApi'
+import { useMyGrievances, useGrievanceStats, useSubmitGrievance, useUpdateGrievanceStatus } from '../../lib/grievanceApi'
 
 const SAMPLES = [
   'Manhole ka dhakkan gayab hai school ke saamne, raat me bahut khatarnaak hai bacchon ke liye',
@@ -284,7 +285,7 @@ export default function CitizenPortal() {
               </div>
               <div className="hidden sm:block text-left">
                 <div className="text-xs font-extrabold text-slate-800">{citizenName}</div>
-                <div className="text-[10px] text-slate-400 font-bold">Verified Citizen • Ward 12</div>
+                <div className="text-[10px] text-slate-400 font-bold">Verified Citizen â€¢ Ward 12</div>
               </div>
             </div>
           </div>
@@ -313,7 +314,7 @@ export default function CitizenPortal() {
                     Welcome back, <span className="text-gradient">{citizenName}</span>!
                   </h1>
                   <p className="text-xs md:text-sm text-slate-500 font-semibold max-w-xl leading-relaxed">
-                    Indore Municipal Corporation • File complaints via form or voice intake, track SLA timers, and verify resolution proof.
+                    Indore Municipal Corporation â€¢ File complaints via form or voice intake, track SLA timers, and verify resolution proof.
                   </p>
                 </div>
 
@@ -445,7 +446,7 @@ export default function CitizenPortal() {
                           <PriorityBadge p={g.priority} />
                         </div>
                         <p className="text-xs font-bold text-slate-800 truncate">{g.text}</p>
-                        <div className="text-[10px] text-slate-400 font-semibold mt-1">{g.wardName} • {g.categoryLabel}</div>
+                        <div className="text-[10px] text-slate-400 font-semibold mt-1">{g.wardName} â€¢ {g.categoryLabel}</div>
                       </div>
                       <button onClick={() => { setSelectedTicket(g); setTab('track') }} className="btn-ghost text-xs px-3 py-1.5 font-extrabold">
                         Track Status
@@ -597,7 +598,7 @@ export default function CitizenPortal() {
                             {/* Submit Form */}
                             <button onClick={fire} disabled={(!subject.trim() && !text.trim()) || busy}
                               className="btn-emerald w-full py-3.5 text-xs font-extrabold shadow-3d-btn flex items-center justify-center gap-2 disabled:opacity-40">
-                              {busy ? <><Loader2 size={16} className="animate-spin" /> Processing AI Pipeline…</> : <><Send size={16} /> Register Structured Grievance</>}
+                              {busy ? <><Loader2 size={16} className="animate-spin" /> Processing AI Pipelineâ€¦</> : <><Send size={16} /> Register Structured Grievance</>}
                             </button>
                           </div>
                         )}
@@ -617,7 +618,7 @@ export default function CitizenPortal() {
                                   : <Mic size={42} className="relative text-white group-hover:scale-110 transition-transform" />}
                               </button>
                               <p className="text-xs font-extrabold text-slate-800 mt-4 flex items-center gap-2">
-                                {recording ? <><span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" /> Sun raha hoon… Boliye aapki samasya</> : 'Mic par click karein aur boliye'}
+                                {recording ? <><span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" /> Sun raha hoonâ€¦ Boliye aapki samasya</> : 'Mic par click karein aur boliye'}
                               </p>
                               <p className="text-[11px] text-slate-400 font-semibold mt-1">Automatic Hinglish / Hindi / English transcription</p>
                             </div>
@@ -638,7 +639,7 @@ export default function CitizenPortal() {
                                 {SAMPLES.map((s, i) => (
                                   <button key={i} onClick={() => setText(s)}
                                     className="text-left text-xs p-3 rounded-2xl font-bold text-slate-700 bg-white/70 border border-slate-200/60 truncate hover:border-indigo-300 transition-all">
-                                    🎤 "{s.slice(0, 35)}…"
+                                    ðŸŽ¤ "{s.slice(0, 35)}â€¦"
                                   </button>
                                 ))}
                               </div>
@@ -646,7 +647,7 @@ export default function CitizenPortal() {
 
                             <button onClick={fire} disabled={!text.trim() || busy}
                               className="btn-emerald w-full py-3.5 text-xs font-extrabold shadow-3d-btn flex items-center justify-center gap-2 disabled:opacity-40">
-                              {busy ? <><Loader2 size={16} className="animate-spin" /> Processing AI Pipeline…</> : <><Send size={16} /> Submit Voice Grievance</>}
+                              {busy ? <><Loader2 size={16} className="animate-spin" /> Processing AI Pipelineâ€¦</> : <><Send size={16} /> Submit Voice Grievance</>}
                             </button>
                           </div>
                         )}
@@ -739,7 +740,7 @@ export default function CitizenPortal() {
                         </div>
                         <p className="text-xs font-bold text-slate-800 leading-relaxed line-clamp-3">{g.text}</p>
                         <div className="text-[10px] font-semibold text-slate-400 flex items-center gap-2">
-                          <span>{g.wardName}</span> • <span>{g.categoryLabel}</span> • <span>{timeAgo(g.createdAt)}</span>
+                          <span>{g.wardName}</span> â€¢ <span>{g.categoryLabel}</span> â€¢ <span>{timeAgo(g.createdAt)}</span>
                         </div>
                       </div>
 
@@ -751,7 +752,7 @@ export default function CitizenPortal() {
                             <button onClick={() => handleReopen(g.id)} className="btn-danger py-2 text-xs">
                               Re-open (Trap)
                             </button>
-                            <button onClick={() => citizenConfirm(g.id)} className="btn-emerald py-2 text-xs">
+                            <button onClick={() => handleConfirm(g.id || g._id)} className="btn-emerald py-2 text-xs">
                               Confirm Fix
                             </button>
                           </div>
@@ -851,7 +852,7 @@ export default function CitizenPortal() {
                           <button onClick={() => handleReopen(activeTrackTarget.id)} className="btn-danger py-2.5 text-xs font-extrabold">
                             <RotateCcw size={14} /> Re-open (Trap)
                           </button>
-                          <button onClick={() => citizenConfirm(activeTrackTarget.id)} className="btn-emerald py-2.5 text-xs font-extrabold">
+                          <button onClick={() => handleConfirm(activeTrackTarget.id || activeTrackTarget._id)} className="btn-emerald py-2.5 text-xs font-extrabold">
                             <ThumbsUp size={14} /> Confirm Fix
                           </button>
                         </div>
@@ -996,3 +997,7 @@ export default function CitizenPortal() {
     </div>
   )
 }
+
+
+
+

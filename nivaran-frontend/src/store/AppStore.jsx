@@ -1,4 +1,4 @@
-// ---------------------------------------------------------------------------
+﻿// ---------------------------------------------------------------------------
 // One shared store for all three dashboards.
 //
 // This is what makes the demo work: a citizen action mutates the SAME state
@@ -27,7 +27,7 @@ export function StoreProvider({ children }) {
     Promise.all([getGrievances(), getOfficers(), getChainLog(), getAssets()])
       .then(([g, o, c, a]) => {
         // Seed a few tickets as "mine" so the citizen's My Grievances list is
-        // never empty on stage — including one already awaiting verification,
+        // never empty on stage â€” including one already awaiting verification,
         // so the Re-open trap is visible the moment you open the portal.
         const seeded = g.map((x, i) => {
           if (i === 0) return { ...x, mine: true, status: 'closed_unverified', proofCid: cid() }
@@ -107,7 +107,7 @@ export function StoreProvider({ children }) {
     emit('CitizenRejected', g)
     emit('Reopened', g, { escalationLevel: 2 })
     emit('Escalated', g, { caller: 'PUBLIC (permissionless)', escalationLevel: 2 })
-    notify(`${id} reopened · escalated to Zonal Officer · integrity ${delta}`, 'bad')
+    notify(`${id} reopened Â· escalated to Zonal Officer Â· integrity ${delta}`, 'bad')
     return { reused, delta }
   }, [grievances, patch, emit, notify])
 
@@ -128,13 +128,13 @@ export function StoreProvider({ children }) {
   }, [grievances, patch, emit])
 
   // Officer claims the work is done. The system records it but does NOT
-  // trust it — status is closed_unverified until the citizen answers.
+  // trust it â€” status is closed_unverified until the citizen answers.
   const officerResolve = useCallback((id, proofDataUrl) => {
     const g = grievances.find((x) => x.id === id)
     const proof = cid()
     patch(id, { status: 'closed_unverified', proofCid: proof, proofImage: proofDataUrl || null, citizenVerified: null })
     emit('ProofAnchored', g, { proofCid: proof })
-    notify(`${id} closed — citizen verification dispatched`, 'warn')
+    notify(`${id} closed â€” citizen verification dispatched`, 'warn')
     return proof
   }, [grievances, patch, emit, notify])
 
@@ -165,3 +165,4 @@ export function StoreProvider({ children }) {
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
+
