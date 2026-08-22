@@ -41,12 +41,23 @@ export function useGrievanceStats() {
   })
 }
 
+export function useGrievanceCount() {
+  return useQuery({
+    queryKey: ['grievanceCount'],
+    queryFn: getMyGrievanceCount,
+    retry: 1,
+    staleTime: 1000 * 30,
+  })
+}
+
 export function useSubmitGrievance() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: createGrievance,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['myGrievances'] })
+      queryClient.invalidateQueries({ queryKey: ['grievanceCount'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboardStats'] })
       queryClient.invalidateQueries({ queryKey: ['grievanceStats'] })
     },
   })
@@ -58,8 +69,22 @@ export function useUpdateGrievanceStatus() {
     mutationFn: ({ id, ...data }) => updateGrievance(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['myGrievances'] })
+      queryClient.invalidateQueries({ queryKey: ['grievanceCount'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboardStats'] })
       queryClient.invalidateQueries({ queryKey: ['grievanceStats'] })
     },
   })
 }
 
+export function useDeleteGrievance() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: deleteGrievance,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['myGrievances'] })
+      queryClient.invalidateQueries({ queryKey: ['grievanceCount'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboardStats'] })
+      queryClient.invalidateQueries({ queryKey: ['grievanceStats'] })
+    },
+  })
+}

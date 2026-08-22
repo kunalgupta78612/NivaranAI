@@ -5,7 +5,7 @@ import {
   TrendingDown, Link2, Inbox, ThumbsUp, RotateCcw, ShieldCheck, Zap
 } from 'lucide-react'
 import { useStore } from '../../store/AppStore'
-import { useMyGrievances, useUpdateGrievanceStatus } from '../../lib/grievanceApi'
+import { useMyGrievances, useUpdateGrievanceStatus, useDeleteGrievance } from '../../lib/grievanceApi'
 import { PriorityBadge } from '../../components/ui'
 import { cx, timeAgo } from '../../lib/utils'
 
@@ -80,7 +80,12 @@ export default function CitizenTrack() {
                   <div className="flex items-center justify-between gap-2 pb-3" style={{ borderBottom: '1px solid rgba(148,163,184,0.12)' }}>
                     <span className="font-mono text-[11px] font-bold text-slate-400 px-2.5 py-1 rounded-xl"
                           style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.08)' }}>{g.id}</span>
-                    <PriorityBadge p={g.priority} />
+                    <div className="flex items-center gap-2">
+                      <PriorityBadge p={g.priority} />
+                      <button onClick={() => handleDelete(g._id || g.id)} title="Delete Grievance" className="p-1.5 rounded-xl text-rose-500 hover:text-rose-700 hover:bg-rose-50 border border-rose-100 transition-all shadow-glass-xs">
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
                   </div>
 
                   <p className="text-sm font-semibold text-slate-700 leading-relaxed line-clamp-3">{g.text}</p>
@@ -181,4 +186,5 @@ export default function CitizenTrack() {
     </div>
   )
 }
+
 

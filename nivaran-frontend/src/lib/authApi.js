@@ -18,8 +18,9 @@ export function useCurrentCitizen() {
     queryKey: ['currentCitizen'],
     queryFn: getCurrentCitizen,
     retry: false,
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: true,
+    staleTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   })
 }
 
@@ -63,4 +64,5 @@ export function useUpdateProfile() {
     },
   })
 }
+
 
