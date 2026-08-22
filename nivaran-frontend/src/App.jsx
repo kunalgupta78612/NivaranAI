@@ -1,6 +1,8 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import Layout from './components/Layout'
+import ProtectedRoute from './components/ProtectedRoute'
+import PublicRoute from './components/PublicRoute'
 import { StoreProvider, useStore } from './store/AppStore'
 
 import Landing from './pages/Landing'
@@ -52,23 +54,49 @@ function Shell() {
     <Routes>
       <Route path="/" element={<Landing />} />
       <Route path="/landing" element={<Landing />} />
-      <Route path="/login" element={<AuthPage />} />
-      <Route path="/signup" element={<AuthPage />} />
-      <Route path="/*" element={
-        <Layout>
-          <Routes>
-            <Route path="/citizen" element={<CitizenPortal />} />
-            <Route path="/citizen/track" element={<CitizenPortal defaultTab="track" />} />
-            <Route path="/citizen/settings" element={<CitizenPortal defaultTab="settings" />} />
-            <Route path="/officer" element={<OfficerBoard />} />
-            <Route path="/admin" element={<GodMode />} />
-            <Route path="/admin/silence" element={<SilenceDetector />} />
-            <Route path="/admin/assets" element={<AssetIntelligence />} />
-            <Route path="/admin/chain" element={<ChainAudit />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Layout>
-      } />
+
+      {/* Public Only Routes */}
+      <Route path="/login" element={<PublicRoute><AuthPage /></PublicRoute>} />
+      <Route path="/signup" element={<PublicRoute><AuthPage /></PublicRoute>} />
+      <Route path="/register" element={<PublicRoute><AuthPage /></PublicRoute>} />
+
+      {/* Protected Citizen Routes */}
+      <Route
+        path="/citizen/*"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <Routes>
+                <Route path="/" element={<CitizenPortal />} />
+                <Route path="/dashboard" element={<CitizenPortal />} />
+                <Route path="/my-grievances" element={<CitizenPortal defaultTab="my_grievances" />} />
+                <Route path="/new-grievance" element={<CitizenPortal defaultTab="file" />} />
+                <Route path="/profile" element={<CitizenPortal defaultTab="profile" />} />
+                <Route path="/track" element={<CitizenPortal defaultTab="track" />} />
+                <Route path="/settings" element={<CitizenPortal defaultTab="settings" />} />
+                <Route path="*" element={<Navigate to="/citizen" replace />} />
+              </Routes>
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Demo Layout Routes for Officer & Admin */}
+      <Route
+        path="/*"
+        element={
+          <Layout>
+            <Routes>
+              <Route path="/officer" element={<OfficerBoard />} />
+              <Route path="/admin" element={<GodMode />} />
+              <Route path="/admin/silence" element={<SilenceDetector />} />
+              <Route path="/admin/assets" element={<AssetIntelligence />} />
+              <Route path="/admin/chain" element={<ChainAudit />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Layout>
+        }
+      />
     </Routes>
   )
 }
