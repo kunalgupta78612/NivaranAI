@@ -113,6 +113,18 @@ const createGrievance = async (req, res) => {
       await grievance.save();
     }
 
+    // Create notification for Citizen owner
+    if (req.user && req.user.userId) {
+      await Notification.create({
+        recipientType: "citizen",
+        recipientId: String(req.user.userId),
+        title: "Grievance Registered",
+        message: `Your grievance ${ticketId} has been registered and assigned to ${targetDept}.`,
+        type: "grievance_submitted",
+        link: "/citizen",
+      });
+    }
+
     // Create notification for target Department
     await Notification.create({
       recipientType: "department",

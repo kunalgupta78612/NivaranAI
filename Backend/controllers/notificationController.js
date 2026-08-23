@@ -2,97 +2,100 @@ const Notification = require("../models/Notification");
 const jwt = require("jsonwebtoken");
 const errorResponse = require("../utils/errorResponse");
 
-// Helper to determine recipient context from request cookies
+// Helper to determine recipient context from request cookies, auth headers, or req.user
 function getRecipientContext(req) {
   const cookies = req.cookies || {};
   const roleParam = req.query?.role;
   const referer = req.headers?.referer || "";
+  const authHeader = req.headers?.authorization || "";
 
-  // 1. Explicit role query parameter
-  if (roleParam === "citizen" && cookies.token) {
+  // Extract Bearer token if present
+  let bearerToken = null;
+  if (authHeader.startsWith("Bearer ")) {
+    bearerToken = authHeader.substring(7).trim();
+  }
+
+  // Helper to safely verify token
+  const verifyToken = (token) => {
     try {
-      const decoded = jwt.verify(cookies.token, process.env.JWT_SECRET);
-      if (decoded && decoded.userId) {
-        return { recipientType: "citizen", recipientId: String(decoded.userId) };
-      }
-    } catch (e) {}
+      return jwt.verify(token, process.env.JWT_SECRET);
+    } catch (e) {
+      return null;
+    }
+  };
+
+  // 0. If req.user is set via auth middleware
+  if (req.user) {
+    if (req.user.role === "admin") {
+      return { recipientType: "admin", recipientId: "admin" };
+    }
+    if (req.user.department) {
+      return { recipientType: "department", recipientId: String(req.user.department) };
+    }
+    if (req.user.userId) {
+      return { recipientType: "citizen", recipientId: String(req.user.userId) };
+    }
+  }
+
+  // 1. Check Bearer token first if supplied
+  if (bearerToken) {
+    const decoded = verifyToken(bearerToken);
+    if (decoded) {
+      if (decoded.role === "admin") return { recipientType: "admin", recipientId: "admin" };
+      if (decoded.department) return { recipientType: "department", recipientId: String(decoded.department) };
+      if (decoded.userId) return { recipientType: "citizen", recipientId: String(decoded.userId) };
+    }
+  }
+
+  // 2. Explicit role query parameter
+  if (roleParam === "citizen" && cookies.token) {
+    const decoded = verifyToken(cookies.token);
+    if (decoded?.userId) return { recipientType: "citizen", recipientId: String(decoded.userId) };
   }
 
   if (roleParam === "department" && (cookies.dept_token || cookies.department_token)) {
-    try {
-      const token = cookies.dept_token || cookies.department_token;
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      if (decoded && decoded.department) {
-        return { recipientType: "department", recipientId: decoded.department };
-      }
-    } catch (e) {}
+    const token = cookies.dept_token || cookies.department_token;
+    const decoded = verifyToken(token);
+    if (decoded?.department) return { recipientType: "department", recipientId: String(decoded.department) };
   }
 
   if (roleParam === "admin" && cookies.admin_token) {
-    try {
-      const decoded = jwt.verify(cookies.admin_token, process.env.JWT_SECRET);
-      if (decoded && decoded.role === "admin") {
-        return { recipientType: "admin", recipientId: "admin" };
-      }
-    } catch (e) {}
+    const decoded = verifyToken(cookies.admin_token);
+    if (decoded?.role === "admin") return { recipientType: "admin", recipientId: "admin" };
   }
 
-  // 2. Infer from HTTP Referer header
+  // 3. Infer from HTTP Referer header
   if ((referer.includes("/citizen") || referer.includes("/my-grievances")) && cookies.token) {
-    try {
-      const decoded = jwt.verify(cookies.token, process.env.JWT_SECRET);
-      if (decoded && decoded.userId) {
-        return { recipientType: "citizen", recipientId: String(decoded.userId) };
-      }
-    } catch (e) {}
+    const decoded = verifyToken(cookies.token);
+    if (decoded?.userId) return { recipientType: "citizen", recipientId: String(decoded.userId) };
   }
 
   if (referer.includes("/officer") && (cookies.dept_token || cookies.department_token)) {
-    try {
-      const token = cookies.dept_token || cookies.department_token;
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      if (decoded && decoded.department) {
-        return { recipientType: "department", recipientId: decoded.department };
-      }
-    } catch (e) {}
+    const token = cookies.dept_token || cookies.department_token;
+    const decoded = verifyToken(token);
+    if (decoded?.department) return { recipientType: "department", recipientId: String(decoded.department) };
   }
 
   if ((referer.includes("/admin") || referer.includes("/godmode")) && cookies.admin_token) {
-    try {
-      const decoded = jwt.verify(cookies.admin_token, process.env.JWT_SECRET);
-      if (decoded && decoded.role === "admin") {
-        return { recipientType: "admin", recipientId: "admin" };
-      }
-    } catch (e) {}
+    const decoded = verifyToken(cookies.admin_token);
+    if (decoded?.role === "admin") return { recipientType: "admin", recipientId: "admin" };
   }
 
-  // 3. Default fallback: Citizen token first
+  // 4. Default fallback: Citizen token -> Department token -> Admin token
   if (cookies.token) {
-    try {
-      const decoded = jwt.verify(cookies.token, process.env.JWT_SECRET);
-      if (decoded && decoded.userId) {
-        return { recipientType: "citizen", recipientId: String(decoded.userId) };
-      }
-    } catch (e) {}
+    const decoded = verifyToken(cookies.token);
+    if (decoded?.userId) return { recipientType: "citizen", recipientId: String(decoded.userId) };
   }
 
   const deptToken = cookies.dept_token || cookies.department_token;
   if (deptToken) {
-    try {
-      const decoded = jwt.verify(deptToken, process.env.JWT_SECRET);
-      if (decoded && decoded.department) {
-        return { recipientType: "department", recipientId: decoded.department };
-      }
-    } catch (e) {}
+    const decoded = verifyToken(deptToken);
+    if (decoded?.department) return { recipientType: "department", recipientId: String(decoded.department) };
   }
 
   if (cookies.admin_token) {
-    try {
-      const decoded = jwt.verify(cookies.admin_token, process.env.JWT_SECRET);
-      if (decoded && decoded.role === "admin") {
-        return { recipientType: "admin", recipientId: "admin" };
-      }
-    } catch (e) {}
+    const decoded = verifyToken(cookies.admin_token);
+    if (decoded?.role === "admin") return { recipientType: "admin", recipientId: "admin" };
   }
 
   return null;
