@@ -13,9 +13,9 @@ import { useStore } from '../../store/AppStore'
 import { PriorityBadge } from '../../components/ui'
 import { cx, timeAgo } from '../../lib/utils'
 import { useCurrentCitizen, useLogout, useChangePassword } from '../../lib/authApi'
-import { useMyGrievances, useGrievanceStats, useSubmitGrievance, useUpdateGrievanceStatus, useDeleteGrievance, useGrievanceTracking } from '../../lib/grievanceApi'
 import NotificationBell from '../../components/NotificationBell'
 import AvalancheAuditCard from '../../components/AvalancheAuditCard'
+import { useNotifications, useMarkNotificationRead, useMarkAllNotificationsRead } from '../../lib/notificationApi'
 
 function GrievanceTrackerTimeline({ grievance }) {
   const targetId = grievance?._id || grievance?.id || grievance?.ticketId
@@ -154,6 +154,13 @@ export default function CitizenPortal({ defaultTab }) {
   const { data: userRes } = useCurrentCitizen()
   const logoutMutation = useLogout()
   const citizen = userRes?.citizen
+
+  const { data: notificationsRes, isLoading: notificationsLoading } = useNotifications()
+  const markReadMutation = useMarkNotificationRead()
+  const markAllReadMutation = useMarkAllNotificationsRead()
+
+  const portalNotifications = notificationsRes?.notifications || []
+  const unreadNotificationsCount = notificationsRes?.unreadCount || 0
 
   const citizenName = citizen?.fullName || 'Astha Patel'
   const citizenWard = citizen?.city ? `${citizen.city}, Ward 12` : 'Vijay Nagar, Ward 12'
@@ -437,7 +444,7 @@ export default function CitizenPortal({ defaultTab }) {
               { key: 'file', label: 'New Grievance', icon: Plus },
               { key: 'my_grievances', label: 'My Grievances', icon: Clock },
               { key: 'track', label: 'Track Complaint', icon: MapPin },
-              { key: 'notifications', label: 'Notifications', icon: Bell, badge: '2' },
+              { key: 'notifications', label: 'Notifications', icon: Bell, badge: unreadNotificationsCount > 0 ? (unreadNotificationsCount > 9 ? '9+' : String(unreadNotificationsCount)) : null },
               { key: 'profile', label: 'Citizen Profile', icon: User },
               { key: 'settings', label: 'Settings', icon: Settings },
             ].map((item) => {
@@ -1138,25 +1145,69 @@ export default function CitizenPortal({ defaultTab }) {
           {/* ============================================================ */}
           {tab === 'notifications' && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4 max-w-3xl">
-              <div className="p-6 rounded-3xl panel shadow-3d-card">
-                <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
-                  <Bell size={18} className="text-indigo-600" /> Notifications & Alerts
-                </h2>
+              <div className="p-6 rounded-3xl panel shadow-3d-card flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
+                    <Bell size={18} className="text-indigo-600" /> Notifications & Alerts
+                  </h2>
+                  <p className="text-xs font-semibold text-slate-500 mt-0.5">Real-time status updates & grievance alerts</p>
+                </div>
+                {unreadNotificationsCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => markAllReadMutation.mutate()}
+                    className="text-xs font-black text-indigo-600 hover:text-indigo-800 flex items-center gap-1.5 transition-colors bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-xl border border-indigo-200"
+                  >
+                    <CheckCircle2 size={14} /> Mark all as read
+                  </button>
+                )}
               </div>
+
               <div className="space-y-3">
-                {[
-                  { title: 'Officer uploaded resolution proof for GRV-100000', desc: 'Please verify if the water pipeline leak was fixed.', time: '10m ago', unread: true },
-                  { title: 'SLA Priority Boosted for GRV-100001', desc: 'Classified near school zone. Priority updated to CRITICAL.', time: '2h ago', unread: true },
-                  { title: 'Grievance Anchored on Polygon', desc: 'Tx hash 0x7f...8a registered on Polygon Amoy testnet.', time: '1d ago', unread: false },
-                ].map((n, i) => (
-                  <div key={i} className={cx('p-4 rounded-2xl panel flex items-center justify-between gap-4 shadow-glass-xs', n.unread ? 'border-indigo-200 bg-indigo-50/30' : '')}>
-                    <div>
-                      <div className="text-xs font-extrabold text-slate-800">{n.title}</div>
-                      <div className="text-[11px] font-semibold text-slate-500 mt-0.5">{n.desc}</div>
-                    </div>
-                    <span className="text-[10px] font-bold text-slate-400 shrink-0">{n.time}</span>
+                {notificationsLoading ? (
+                  <div className="p-10 rounded-3xl panel text-center text-slate-400 text-xs font-bold">
+                    <Loader2 size={24} className="animate-spin mx-auto text-indigo-500 mb-2" />
+                    Syncing live notifications...
                   </div>
-                ))}
+                ) : portalNotifications.length === 0 ? (
+                  <div className="p-10 rounded-3xl panel text-center text-slate-400 space-y-2">
+                    <ShieldCheck size={32} className="mx-auto text-indigo-400" />
+                    <p className="text-sm font-black text-slate-700">No notifications yet</p>
+                    <p className="text-xs text-slate-400 font-semibold">Updates arrive automatically whenever your grievances are registered or updated.</p>
+                  </div>
+                ) : (
+                  portalNotifications.map((n) => (
+                    <div
+                      key={n._id}
+                      className={cx(
+                        'p-4.5 rounded-2xl panel flex items-start justify-between gap-4 shadow-glass-xs transition-all',
+                        !n.read ? 'border-indigo-200 bg-indigo-50/40 shadow-indigo-100/50' : 'bg-white'
+                      )}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className={cx("w-2.5 h-2.5 rounded-full mt-1.5 shrink-0", !n.read ? "bg-indigo-600 shadow-sm shadow-indigo-400 animate-pulse" : "bg-slate-300")} />
+                        <div>
+                          <div className={cx('text-xs tracking-tight', !n.read ? 'font-black text-slate-900' : 'font-extrabold text-slate-800')}>
+                            {n.title}
+                          </div>
+                          <div className="text-[11px] font-semibold text-slate-600 mt-1 leading-relaxed">{n.message}</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <span className="text-[10px] font-bold text-slate-400">{timeAgo(n.createdAt)}</span>
+                        {!n.read && (
+                          <button
+                            type="button"
+                            onClick={() => markReadMutation.mutate(n._id)}
+                            className="text-[10px] font-black text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-lg transition-colors border border-indigo-100"
+                          >
+                            Mark read
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </motion.div>
           )}
