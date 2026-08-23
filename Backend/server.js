@@ -167,6 +167,16 @@ app.use((err, req, res, next) => {
   });
 });
 
+// Middleware to ensure DB connection on serverless requests
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
+
 const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
@@ -193,4 +203,8 @@ const startServer = async () => {
   }
 };
 
-startServer();
+if (!process.env.VERCEL) {
+  startServer();
+}
+
+module.exports = app;
