@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "npm install --prefix Backend && cd nivaran-frontend && npm install && npm run build",
+  "buildCommand": "cd nivaran-frontend && npm install && npm run build",
   "outputDirectory": "nivaran-frontend/dist",
   "functions": {
     "api/index.js": {
