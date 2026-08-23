@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "concurrently --kill-others -n \"BACKEND,FRONTEND\" -c \"blue,magenta\" \"npm --prefix Backend run dev\" \"npm --prefix nivaran-frontend run dev\"",
     "start": "concurrently --kill-others -n \"BACKEND,FRONTEND\" -c \"blue,magenta\" \"npm --prefix Backend start\" \"npm --prefix nivaran-frontend run dev\"",
-    "build": "cd nivaran-frontend && npm install && npm run build",
+    "build": "npm install --prefix nivaran-frontend && npm run build --prefix nivaran-frontend",
     "backend": "npm --prefix Backend start",
     "frontend": "npm --prefix nivaran-frontend run dev"
   },
