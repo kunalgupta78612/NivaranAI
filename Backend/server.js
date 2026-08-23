@@ -5,7 +5,10 @@ const helmet = require("helmet");
 const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
 
-dotenv.config();
+// Load .env in non-Vercel environments (Vercel uses dashboard env vars)
+if (!process.env.VERCEL) {
+  dotenv.config();
+}
 
 const connectDB = require("./config/db");
 const seedBuiltInAdmin = require("./config/seedAdmin");
@@ -72,6 +75,17 @@ app.use(cookieParser());
 if (process.env.NODE_ENV !== "test") {
   app.use(morgan("dev"));
 }
+
+// ✅ Ensure MongoDB is connected before any route handler executes
+// (critical for Vercel serverless where startServer() is not called)
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
 
 // API Routes
 app.use("/api/auth", authRoutes);
@@ -167,15 +181,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Middleware to ensure DB connection on serverless requests
-app.use(async (req, res, next) => {
-  try {
-    await connectDB();
-    next();
-  } catch (err) {
-    next(err);
-  }
-});
+// (connectDB middleware moved above routes — see line ~75)
 
 const PORT = process.env.PORT || 5000;
 

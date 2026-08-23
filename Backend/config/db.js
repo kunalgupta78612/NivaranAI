@@ -11,7 +11,10 @@ const connectDB = async () => {
     return;
   }
   try {
-    const conn = await mongoose.connect(process.env.MONGODB_URI || "mongodb://localhost:27017/nivaran");
+    const conn = await mongoose.connect(process.env.MONGODB_URI || "mongodb://localhost:27017/nivaran", {
+      serverSelectionTimeoutMS: 5000,  // Give up after 5s (prevents serverless hangs)
+      connectTimeoutMS: 5000,
+    });
     isConnected = true;
     console.log(`MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {
@@ -19,6 +22,7 @@ const connectDB = async () => {
     if (!process.env.VERCEL) {
       process.exit(1);
     }
+    // On Vercel: log & continue — DB-dependent routes will return 500
   }
 };
 
