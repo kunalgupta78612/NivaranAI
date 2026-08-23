@@ -24,16 +24,21 @@ function getRecipientContext(req) {
     }
   };
 
+  const getCitizenId = (obj) => obj?.userId || obj?.id || obj?._id;
+  const getDeptId = (obj) => obj?.department || obj?.departmentId || obj?.dept;
+
   // 0. If req.user is set via auth middleware
   if (req.user) {
     if (req.user.role === "admin") {
       return { recipientType: "admin", recipientId: "admin" };
     }
-    if (req.user.department) {
-      return { recipientType: "department", recipientId: String(req.user.department) };
+    const deptId = getDeptId(req.user);
+    if (deptId) {
+      return { recipientType: "department", recipientId: String(deptId) };
     }
-    if (req.user.userId) {
-      return { recipientType: "citizen", recipientId: String(req.user.userId) };
+    const citizenId = getCitizenId(req.user);
+    if (citizenId) {
+      return { recipientType: "citizen", recipientId: String(citizenId) };
     }
   }
 
@@ -42,21 +47,25 @@ function getRecipientContext(req) {
     const decoded = verifyToken(bearerToken);
     if (decoded) {
       if (decoded.role === "admin") return { recipientType: "admin", recipientId: "admin" };
-      if (decoded.department) return { recipientType: "department", recipientId: String(decoded.department) };
-      if (decoded.userId) return { recipientType: "citizen", recipientId: String(decoded.userId) };
+      const deptId = getDeptId(decoded);
+      if (deptId) return { recipientType: "department", recipientId: String(deptId) };
+      const citizenId = getCitizenId(decoded);
+      if (citizenId) return { recipientType: "citizen", recipientId: String(citizenId) };
     }
   }
 
   // 2. Explicit role query parameter
   if (roleParam === "citizen" && cookies.token) {
     const decoded = verifyToken(cookies.token);
-    if (decoded?.userId) return { recipientType: "citizen", recipientId: String(decoded.userId) };
+    const citizenId = getCitizenId(decoded);
+    if (citizenId) return { recipientType: "citizen", recipientId: String(citizenId) };
   }
 
   if (roleParam === "department" && (cookies.dept_token || cookies.department_token)) {
     const token = cookies.dept_token || cookies.department_token;
     const decoded = verifyToken(token);
-    if (decoded?.department) return { recipientType: "department", recipientId: String(decoded.department) };
+    const deptId = getDeptId(decoded);
+    if (deptId) return { recipientType: "department", recipientId: String(deptId) };
   }
 
   if (roleParam === "admin" && cookies.admin_token) {
@@ -67,13 +76,15 @@ function getRecipientContext(req) {
   // 3. Infer from HTTP Referer header
   if ((referer.includes("/citizen") || referer.includes("/my-grievances")) && cookies.token) {
     const decoded = verifyToken(cookies.token);
-    if (decoded?.userId) return { recipientType: "citizen", recipientId: String(decoded.userId) };
+    const citizenId = getCitizenId(decoded);
+    if (citizenId) return { recipientType: "citizen", recipientId: String(citizenId) };
   }
 
   if (referer.includes("/officer") && (cookies.dept_token || cookies.department_token)) {
     const token = cookies.dept_token || cookies.department_token;
     const decoded = verifyToken(token);
-    if (decoded?.department) return { recipientType: "department", recipientId: String(decoded.department) };
+    const deptId = getDeptId(decoded);
+    if (deptId) return { recipientType: "department", recipientId: String(deptId) };
   }
 
   if ((referer.includes("/admin") || referer.includes("/godmode")) && cookies.admin_token) {
@@ -84,13 +95,15 @@ function getRecipientContext(req) {
   // 4. Default fallback: Citizen token -> Department token -> Admin token
   if (cookies.token) {
     const decoded = verifyToken(cookies.token);
-    if (decoded?.userId) return { recipientType: "citizen", recipientId: String(decoded.userId) };
+    const citizenId = getCitizenId(decoded);
+    if (citizenId) return { recipientType: "citizen", recipientId: String(citizenId) };
   }
 
   const deptToken = cookies.dept_token || cookies.department_token;
   if (deptToken) {
     const decoded = verifyToken(deptToken);
-    if (decoded?.department) return { recipientType: "department", recipientId: String(decoded.department) };
+    const deptId = getDeptId(decoded);
+    if (deptId) return { recipientType: "department", recipientId: String(deptId) };
   }
 
   if (cookies.admin_token) {

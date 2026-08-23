@@ -113,37 +113,40 @@ const createGrievance = async (req, res) => {
       await grievance.save();
     }
 
-    // Create notification for Citizen owner
-    if (req.user && req.user.userId) {
+    // Always create real database notifications for Citizen, Department, and Admin
+    try {
+      const citizenId = req.user ? String(req.user.userId || req.user.id || req.user._id) : null;
+      if (citizenId) {
+        await Notification.create({
+          recipientType: "citizen",
+          recipientId: citizenId,
+          title: "Grievance Registered",
+          message: `Your grievance ${ticketId} has been registered and assigned to ${targetDept}.`,
+          type: "grievance_submitted",
+          link: "/citizen",
+        });
+      }
+
       await Notification.create({
-        recipientType: "citizen",
-        recipientId: String(req.user.userId),
-        title: "Grievance Registered",
-        message: `Your grievance ${ticketId} has been registered and assigned to ${targetDept}.`,
+        recipientType: "department",
+        recipientId: targetDept,
+        title: "New Grievance Assigned",
+        message: `New grievance ${ticketId} registered in ${categoryLabel || category} for ${targetWardName}.`,
         type: "grievance_submitted",
-        link: "/citizen",
+        link: "/officer",
       });
+
+      await Notification.create({
+        recipientType: "admin",
+        recipientId: "admin",
+        title: "New Grievance Ingested",
+        message: `Grievance ${ticketId} submitted by citizen assigned to ${targetDept}.`,
+        type: "grievance_submitted",
+        link: "/admin",
+      });
+    } catch (notifErr) {
+      console.error("⚠️ Notification creation error:", notifErr.message);
     }
-
-    // Create notification for target Department
-    await Notification.create({
-      recipientType: "department",
-      recipientId: targetDept,
-      title: "New Grievance Assigned",
-      message: `New grievance ${ticketId} registered in ${categoryLabel || category} for ${targetWardName}.`,
-      type: "grievance_submitted",
-      link: "/officer",
-    });
-
-    // Create notification for Admin
-    await Notification.create({
-      recipientType: "admin",
-      recipientId: "admin",
-      title: "New Grievance Ingested",
-      message: `Grievance ${ticketId} submitted by citizen assigned to ${targetDept}.`,
-      type: "grievance_submitted",
-      link: "/admin",
-    });
 
     res.status(201).json({
       success: true,
