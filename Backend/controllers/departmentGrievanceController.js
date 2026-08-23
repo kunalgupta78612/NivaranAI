@@ -92,12 +92,36 @@ const updateGrievanceStatus = async (req, res) => {
     if (grievance.citizen) {
       const citizenId = String(grievance.citizen._id || grievance.citizen);
       const ticketRef = grievance.ticketId || grievance._id;
-      const formattedStatus = status.replace('_', ' ');
+      const formattedStatus = status.replace(/_/g, " ").toUpperCase();
+
+      let title = `Grievance Status: ${formattedStatus}`;
+      let message = `Your grievance ${ticketRef} status has been updated to '${formattedStatus}' by ${deptName}.`;
+
+      if (status === "assigned") {
+        title = "Grievance Assigned";
+        message = `Your grievance ${ticketRef} has been assigned to an officer in ${deptName}.`;
+      } else if (status === "in_progress") {
+        title = "Work In Progress";
+        message = `Work is now actively in progress for your grievance ${ticketRef} by ${deptName}.`;
+      } else if (status === "verified_resolved" || status === "resolved") {
+        title = "Grievance Resolved 🎉";
+        message = `Great news! Your grievance ${ticketRef} has been resolved by ${deptName}.`;
+      } else if (status === "rejected") {
+        title = "Grievance Rejected";
+        message = `Your grievance ${ticketRef} was rejected by ${deptName}.`;
+      } else if (status === "reopened") {
+        title = "Grievance Reopened";
+        message = `Your grievance ${ticketRef} has been reopened for review.`;
+      } else if (status === "escalated") {
+        title = "Grievance Escalated ⚡";
+        message = `Your grievance ${ticketRef} has been escalated for high-priority resolution.`;
+      }
+
       await Notification.create({
         recipientType: "citizen",
         recipientId: citizenId,
-        title: "Grievance Status Updated",
-        message: `Your grievance ${ticketRef} status has been updated to '${formattedStatus}' by ${deptName}.`,
+        title,
+        message,
         type: "status_updated",
         link: "/citizen",
       });

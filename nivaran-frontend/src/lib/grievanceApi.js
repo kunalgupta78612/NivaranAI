@@ -88,6 +88,7 @@ export function useSubmitGrievance() {
       queryClient.invalidateQueries({ queryKey: ['departmentGrievances'] })
       queryClient.invalidateQueries({ queryKey: ['grievances'] })
       queryClient.invalidateQueries({ queryKey: ['grievanceTracking'] })
+      queryClient.invalidateQueries({ queryKey: ['notifications'] })
     },
   })
 }
@@ -106,6 +107,7 @@ export function useUpdateGrievanceStatus() {
       queryClient.invalidateQueries({ queryKey: ['departmentGrievances'] })
       queryClient.invalidateQueries({ queryKey: ['grievances'] })
       queryClient.invalidateQueries({ queryKey: ['grievanceTracking'] })
+      queryClient.invalidateQueries({ queryKey: ['notifications'] })
     },
   })
 }

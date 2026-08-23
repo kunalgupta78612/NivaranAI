@@ -18,8 +18,9 @@ export function useNotifications() {
   return useQuery({
     queryKey: ['notifications'],
     queryFn: getMyNotifications,
-    refetchInterval: 5 * 1000, // 1-minute auto-polling as required
-    staleTime: 30 * 1000,
+    refetchInterval: 3 * 1000, // Fast 3-second live polling for real-time notifications
+    staleTime: 1 * 1000,
+    refetchOnWindowFocus: true,
     retry: false,
   })
 }

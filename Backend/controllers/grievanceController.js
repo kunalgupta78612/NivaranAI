@@ -378,6 +378,32 @@ const updateGrievanceStatus = async (req, res) => {
     });
     await grievance.save();
 
+    // Create notifications
+    const ticketRef = grievance.ticketId || grievance._id;
+    const formattedStatus = status.replace(/_/g, " ").toUpperCase();
+
+    // Notify Citizen
+    await Notification.create({
+      recipientType: "citizen",
+      recipientId: String(grievance.citizen),
+      title: `Grievance Status: ${formattedStatus}`,
+      message: `Your grievance ${ticketRef} status has been updated to '${formattedStatus}'.`,
+      type: "status_updated",
+      link: "/citizen",
+    });
+
+    // Notify Department
+    if (grievance.dept) {
+      await Notification.create({
+        recipientType: "department",
+        recipientId: grievance.dept,
+        title: `Grievance Status: ${formattedStatus}`,
+        message: `Grievance ${ticketRef} status updated to '${formattedStatus}'.`,
+        type: "status_updated",
+        link: "/officer",
+      });
+    }
+
     res.status(200).json({
       success: true,
       message: `Grievance status updated to ${status}`,

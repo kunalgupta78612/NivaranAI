@@ -110,17 +110,17 @@ export async function getStats() {
 
 /* POST /api/grievances  â€” the full intake pipeline.
    onStage() lets the UI narrate each backend step as it completes. */
-export async function submitGrievance({ text, channel = 'web', onStage = () => {} }) {
+export async function submitGrievance({ text, channel = 'web', onStage = () => { } }) {
   const mockSubmit = async () => {
     const stages = [
       ['transcribe', 'Transcribing code-mixed audio (Whisper / IndicWhisper)', 620],
-      ['classify',   'Classifying intent + department (LLM, structured output)', 540],
-      ['geo',        'Resolving landmark to coordinates (Nominatim)', 420],
-      ['asset',      'Binding to civic asset in the city graph', 480],
-      ['cluster',    'Vector + geo dedup against open incidents (Atlas $vectorSearch)', 560],
-      ['harm',       'Computing harm-weighted priority (OSM proximity, time, velocity)', 460],
-      ['route',      'Routing to accountable officer + SLA contract', 400],
-      ['chain',      'Anchoring hash on Polygon (GrievanceRegistry.sol)', 700]
+      ['classify', 'Classifying intent + department (LLM, structured output)', 540],
+      ['geo', 'Resolving landmark to coordinates (Nominatim)', 420],
+      ['asset', 'Binding to civic asset in the city graph', 480],
+      ['cluster', 'Vector + geo dedup against open incidents (Atlas $vectorSearch)', 560],
+      ['harm', 'Computing harm-weighted priority (OSM proximity, time, velocity)', 460],
+      ['route', 'Routing to accountable officer + SLA contract', 400],
+      ['chain', 'Anchoring hash on Polygon (GrievanceRegistry.sol)', 700]
     ]
     for (const [key, label, ms] of stages) {
       onStage({ key, label, state: 'running' })
@@ -131,14 +131,14 @@ export async function submitGrievance({ text, channel = 'web', onStage = () => {
     const t = (text || '').toLowerCase()
     const guess =
       /kachra|garbage|dustbin|safai|waste/.test(t) ? 'sanitation' :
-      /paani|water|pipeline|tanker|nal/.test(t)    ? 'water' :
-      /light|andhera|bijli ka pole|street/.test(t) ? 'streetlight' :
-      /gadda|pothole|sadak|road|gaddha/.test(t)    ? 'road' :
-      /naali|drain|sewage|manhole|gutter/.test(t)  ? 'drainage' :
-      /bijli|transformer|current|taar|power/.test(t) ? 'electricity' :
-      /kutta|kutte|dog|gaay|cow|stray/.test(t)     ? 'stray' :
-      /dengue|mosquito|toilet|health|beemar/.test(t) ? 'health' :
-      /signal|traffic|jam|parking/.test(t)         ? 'traffic' : 'encroach'
+        /paani|water|pipeline|tanker|nal/.test(t) ? 'water' :
+          /light|andhera|bijli ka pole|street/.test(t) ? 'streetlight' :
+            /gadda|pothole|sadak|road|gaddha/.test(t) ? 'road' :
+              /naali|drain|sewage|manhole|gutter/.test(t) ? 'drainage' :
+                /bijli|transformer|current|taar|power/.test(t) ? 'electricity' :
+                  /kutta|kutte|dog|gaay|cow|stray/.test(t) ? 'stray' :
+                    /dengue|mosquito|toilet|health|beemar/.test(t) ? 'health' :
+                      /signal|traffic|jam|parking/.test(t) ? 'traffic' : 'encroach'
 
     const cat = M.catOf(guess)
     const nearSchool = /school|bacch|bachch|college/.test(t)
@@ -212,13 +212,13 @@ export async function verifyGrievance(id, accepted) {
     return accepted
       ? { id, status: 'verified_resolved', txHash: '0x' + Math.random().toString(16).slice(2, 66) }
       : {
-          id,
-          status: 'reopened',
-          escalationLevel: 2,
-          imageReused: Math.random() < 0.5,
-          integrityDelta: -(4 + Math.floor(Math.random() * 8)),
-          txHash: '0x' + Array.from({ length: 64 }, () => '0123456789abcdef'[Math.floor(Math.random() * 16)]).join('')
-        }
+        id,
+        status: 'reopened',
+        escalationLevel: 2,
+        imageReused: Math.random() < 0.5,
+        integrityDelta: -(4 + Math.floor(Math.random() * 8)),
+        txHash: '0x' + Array.from({ length: 64 }, () => '0123456789abcdef'[Math.floor(Math.random() * 16)]).join('')
+      }
   }
   if (MODE === 'live') {
     return live(`/grievances/${id}/verify`, { method: 'POST', body: JSON.stringify({ accepted }) }, mockVerify)
