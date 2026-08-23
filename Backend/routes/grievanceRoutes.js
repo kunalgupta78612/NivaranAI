@@ -11,6 +11,7 @@ const {
   getGrievanceStats,
   updateGrievanceStatus,
   getGrievanceTracking,
+  getGrievanceAudit,
 } = require("../controllers/grievanceController");
 
 const { protect } = require("../middleware/authMiddleware");
@@ -24,6 +25,7 @@ router.get("/my/count", protect, getMyGrievanceCount);
 router.get("/stats", protect, getGrievanceStats);
 router.get("/:id", protect, getGrievanceById);
 router.get("/:id/tracking", protect, getGrievanceTracking);
+router.get("/:id/audit", getGrievanceAudit);
 router.put("/:id", protect, updateGrievance);
 router.delete("/:id", protect, deleteGrievance);
 router.patch("/:id/status", protect, updateGrievanceStatus);

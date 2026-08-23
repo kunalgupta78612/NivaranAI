@@ -55,6 +55,11 @@ export const getGrievanceTracking = async (id) => {
   return response.data;
 };
 
+export const getGrievanceAudit = async (id) => {
+  const response = await api.get(`/grievances/${id}/audit`);
+  return response.data;
+};
+
 export const getMyGrievanceCount = async () => {
   const response = await api.get('/grievances/my/count');
   return response.data;

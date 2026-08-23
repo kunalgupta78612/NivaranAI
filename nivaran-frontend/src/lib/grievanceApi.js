@@ -4,6 +4,7 @@ import {
   getMyGrievances,
   getGrievanceById,
   getGrievanceTracking,
+  getGrievanceAudit,
   getMyGrievanceCount,
   updateGrievance,
   deleteGrievance,
@@ -15,6 +16,7 @@ export {
   getMyGrievances,
   getGrievanceById,
   getGrievanceTracking,
+  getGrievanceAudit,
   getMyGrievanceCount,
   updateGrievance,
   deleteGrievance,
@@ -38,6 +40,16 @@ export function useGrievanceTracking(id) {
   return useQuery({
     queryKey: ['grievanceTracking', id],
     queryFn: () => getGrievanceTracking(id),
+    enabled: Boolean(id),
+    retry: 1,
+    staleTime: 0,
+  })
+}
+
+export function useGrievanceAudit(id) {
+  return useQuery({
+    queryKey: ['grievanceAudit', id],
+    queryFn: () => getGrievanceAudit(id),
     enabled: Boolean(id),
     retry: 1,
     staleTime: 0,

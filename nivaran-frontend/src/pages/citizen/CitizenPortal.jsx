@@ -15,6 +15,7 @@ import { cx, timeAgo } from '../../lib/utils'
 import { useCurrentCitizen, useLogout, useChangePassword } from '../../lib/authApi'
 import { useMyGrievances, useGrievanceStats, useSubmitGrievance, useUpdateGrievanceStatus, useDeleteGrievance, useGrievanceTracking } from '../../lib/grievanceApi'
 import NotificationBell from '../../components/NotificationBell'
+import AvalancheAuditCard from '../../components/AvalancheAuditCard'
 
 function GrievanceTrackerTimeline({ grievance }) {
   const targetId = grievance?._id || grievance?.id || grievance?.ticketId
@@ -905,8 +906,11 @@ export default function CitizenPortal({ defaultTab }) {
                     </div>
                     <div>
                       <h2 className="text-2xl font-black text-slate-900">Grievance Registered Successfully</h2>
-                      <p className="font-mono text-sm font-bold text-emerald-600 mt-1">Ticket ID: {ticket.id}</p>
+                      <p className="font-mono text-sm font-bold text-emerald-600 mt-1">Ticket ID: {ticket.ticketId || ticket.id}</p>
                     </div>
+
+                    {/* Avalanche Fuji Audit Trail Card */}
+                    <AvalancheAuditCard ticket={ticket} compact={true} />
 
                     <div className="p-4 rounded-2xl bg-white/80 border border-slate-200 text-left space-y-2">
                       <div className="text-xs font-extrabold text-slate-800">Department: {ticket.dept}</div>
@@ -1095,6 +1099,7 @@ export default function CitizenPortal({ defaultTab }) {
 
                   <div className="lg:col-span-5 p-7 rounded-3xl panel shadow-3d-card space-y-6">
                     <GrievanceTrackerTimeline grievance={activeTrackTarget} />
+                    <AvalancheAuditCard ticket={activeTrackTarget} compact={true} />
 
                     <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
                       <ShieldCheck size={16} className="text-indigo-600" /> Resolution Progress Rail

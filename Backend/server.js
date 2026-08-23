@@ -174,10 +174,18 @@ const startServer = async () => {
     await connectDB();
     await seedBuiltInAdmin();
 
-    app.listen(PORT, () => {
+    const server = app.listen(PORT, () => {
       console.log("CivicFlow Backend Server running on port " + PORT);
       console.log("Environment: " + (process.env.NODE_ENV || "development"));
       console.log("Health Check: http://localhost:" + PORT + "/api/health");
+    });
+
+    server.on("error", (err) => {
+      if (err.code === "EADDRINUSE") {
+        console.warn(`⚠️ Port ${PORT} is currently busy. Nodemon will retry...`);
+      } else {
+        console.error("Server error:", err.message);
+      }
     });
   } catch (error) {
     console.error("Failed to start server:", error.message);

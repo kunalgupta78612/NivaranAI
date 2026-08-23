@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   CheckCircle2, Clock, Loader2, AlertTriangle, ImageOff, ArrowUpCircle,
@@ -8,6 +8,7 @@ import { useStore } from '../../store/AppStore'
 import { useMyGrievances, useUpdateGrievanceStatus, useDeleteGrievance } from '../../lib/grievanceApi'
 import { PriorityBadge } from '../../components/ui'
 import { cx, timeAgo } from '../../lib/utils'
+import AvalancheAuditCard from '../../components/AvalancheAuditCard'
 
 const STEP = {
   filed:              { i: 0, label: 'Grievance Filed',              tone: 'text-slate-500' },
@@ -97,6 +98,9 @@ export default function CitizenTrack() {
                     <span>Â·</span>
                     <span>{timeAgo(g.createdAt)}</span>
                   </div>
+
+                  {/* Avalanche Fuji Audit Card */}
+                  <AvalancheAuditCard ticket={g} compact={true} />
 
                   {/* Progress rail */}
                   <div className="space-y-2 pt-2">

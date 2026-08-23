@@ -119,6 +119,20 @@ const grievanceSchema = new mongoose.Schema(
     filedByAgent: { type: Boolean, default: false },
     auditHash: { type: String, default: null },
 
+    // Avalanche Fuji Immutable Audit Trail & IPFS Pinning fields
+    ipfsCid: { type: String, default: null },
+    blockchainTxHash: { type: String, default: null },
+    blockNumber: { type: Number, default: null },
+    blockchainStatus: {
+      type: String,
+      enum: ["PENDING", "CONFIRMED", "FAILED", "NOT_CONFIGURED"],
+      default: "PENDING",
+    },
+    blockchainNetwork: {
+      type: String,
+      default: "Avalanche Fuji C-Chain (Chain 43113)",
+    },
+
     // The plausibility-gate verdict that let this ticket through — a
     // transparent audit trail of why the agent accepted it as a genuine report.
     plausibility: {
