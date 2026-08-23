@@ -132,6 +132,21 @@ app.get("/api/wards/silence", (req, res) => {
   res.status(200).json([]);
 });
 
+// One-time seed endpoint — creates built-in admin on Vercel (safe: idempotent)
+app.get("/api/seed-admin", async (req, res) => {
+  try {
+    const Admin = require("./models/Admin");
+    const existing = await Admin.findOne({ email: "astha@gmail.com" });
+    if (existing) {
+      return res.json({ success: true, message: "Admin already exists", email: "astha@gmail.com" });
+    }
+    await Admin.create({ fullName: "System Admin", email: "astha@gmail.com", password: "12345678", role: "admin" });
+    res.json({ success: true, message: "Admin seeded successfully", email: "astha@gmail.com", password: "12345678" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 app.get("/api/health", (req, res) => {
   res.status(200).json({
     success: true,
